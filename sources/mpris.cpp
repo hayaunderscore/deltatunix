@@ -116,6 +116,7 @@ void updatePlaybackState(const variant_map &properties)
     {
         paused = false;
         stoppedCallback();
+        previousDisplayedText = "";
     }
     if (paused != lastPaused)
     {
