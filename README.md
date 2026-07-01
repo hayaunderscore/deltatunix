@@ -2,6 +2,7 @@
 
 A portable clone of Toastworth's [DeltaTune](https://github.com/ToadsworthLP/deltatune) for Linux, an overlay that shows the title and artist of whatever song you're playing.
 This uses the MPRIS DBus interface to check for running media players.
+Should run on X11 and Wayland under XWayland (sorry native wayland users!)
 
 ![Screenshot](screenshot.png)
 
