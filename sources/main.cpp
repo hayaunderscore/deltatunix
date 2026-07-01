@@ -4,12 +4,35 @@
 #include "mpris.hpp"
 #include "window.hpp"
 #include <GLFW/glfw3.h>
+#include <cstdlib>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #define INI_IMPLEMENTATION
 #include "ini.h"
+
+inline constexpr const char *HOME_RESOURCE_PATH = "/.config/deltatunix/";
+inline constexpr const char *GLOBAL_RESOURCE_PATH = "/usr/share/deltatunix/";
+
+// Helper to get resources
+std::string GetResourcePath(const std::string &path)
+{
+    // CHECK 1: EXECUTABLE DIRECTORY
+    if (FileExists((GetApplicationDirectory() + path).c_str()))
+        return GetApplicationDirectory() + path;
+#ifdef __unix__
+    // CHECK 2: $HOME/.config/deltatunix/
+    const char *home = getenv("HOME");
+    std::string expanded = (home + std::string(HOME_RESOURCE_PATH) + path);
+    if (FileExists(expanded.c_str()))
+        return expanded.c_str();
+    // CHECK 3: /usr/share/deltatunix/
+    return GLOBAL_RESOURCE_PATH + path;
+#else
+    return path;
+#endif
+}
 
 enum TextState
 {
@@ -35,6 +58,7 @@ struct Config
     float padding;
     bool disappear;
     bool changeAnimation;
+    int monitor;
 };
 
 Config config = {
@@ -42,6 +66,7 @@ Config config = {
     .padding = 24.0f,
     .disappear = false,
     .changeAnimation = true,
+    .monitor = 0,
 };
 
 TextState currentState = STATE_HIDDEN;
@@ -178,6 +203,30 @@ void DrawTextExWithFallback(Font font, Font fallbackFont, const char *text, Vect
     }
 }
 
+RenderTexture2D textTexture;
+
+void GenerateTuneText()
+{
+    if (currentText.empty())
+        return;
+
+    // Get the size of the text to draw
+    Vector2 textSize = MeasureTextExWithFallback(tuneFont, tuneFallbackFont, currentText.c_str(), tuneFont.baseSize * config.textScale, 0);
+
+    BeginTextureMode(textTexture);
+
+    ClearBackground(BLANK);
+
+    // Calculate the top-left text position based on the rectangle and
+    // alignment
+    Rectangle rect = {config.padding, config.padding, (float)GetScreenWidth() - (config.padding * 2), (float)GetScreenHeight() - (config.padding * 2)};
+    Vector2 textPos = (Vector2){rect.x + Lerp(0.0f, rect.width - textSize.x, 1.0f), rect.y + Lerp(0.0f, rect.height - textSize.y, 0.5f)};
+
+    DrawTextExWithFallback(tuneFont, tuneFallbackFont, currentText.c_str(), textPos, tuneFont.baseSize * config.textScale, 0, WHITE);
+
+    EndTextureMode();
+}
+
 void DrawTuneText()
 {
     if (currentState == STATE_HIDDEN)
@@ -186,15 +235,12 @@ void DrawTuneText()
     if (currentText.empty())
         return;
 
-    // Get the size of the text to draw
-    Vector2 textSize = MeasureTextExWithFallback(tuneFont, tuneFallbackFont, currentText.c_str(), tuneFont.baseSize * config.textScale, 0);
+    Color alph = WHITE;
+    alph.a = opacity * 255;
 
-    // Calculate the top-left text position based on the rectangle and
-    // alignment
-    Rectangle rect = {config.padding, config.padding, (float)GetScreenWidth() - (config.padding * 2), (float)GetScreenHeight() - (config.padding * 2)};
-    Vector2 textPos = (Vector2){rect.x + Lerp(0.0f, rect.width - textSize.x, 1.0f) + positionOffset.x, rect.y + Lerp(0.0f, rect.height - textSize.y, 0.5f) + positionOffset.y};
-
-    DrawTextExWithFallback(tuneFont, tuneFallbackFont, currentText.c_str(), textPos, tuneFont.baseSize * config.textScale, 0, (Color){255, 255, 255, (unsigned char)(opacity * 255)});
+    Rectangle srcrec = {0, 0, (float)textTexture.texture.width, (float)-textTexture.texture.height};
+    Rectangle dstrec = {positionOffset.x, positionOffset.y, (float)textTexture.texture.width, (float)textTexture.texture.height};
+    DrawTexturePro(textTexture.texture, srcrec, dstrec, {}, 0, alph);
 }
 
 inline static float InterpolateQuadratic(float a, float b, float t)
@@ -228,7 +274,10 @@ void UpdateTuneState()
             opacity = 0;
             positionOffset.x = 0;
             if (config.changeAnimation)
+            {
                 currentText = mpris::buildDisplayedText();
+                GenerateTuneText();
+            }
             queuedText = false;
         }
 
@@ -291,7 +340,7 @@ const char *get_ini_property(const ini_t *ini, const char *property, int section
 
 void LoadConfig()
 {
-    char *file = LoadFileText(CONFIG_FILE);
+    char *file = LoadFileText(GetResourcePath(CONFIG_FILE).c_str());
     if (file == NULL)
     {
         TraceLog(LOG_ERROR, "CONFIG: Could not parse config!");
@@ -314,15 +363,40 @@ void LoadConfig()
     config.disappear = b;
     std::istringstream(get_ini_property(ini, "ChangeAnimation", general_section, "True")) >> b;
     config.changeAnimation = b;
+    config.monitor = std::stoi(get_ini_property(ini, "Monitor", general_section, "0"));
 
     TraceLog(LOG_INFO, TextFormat("CONFIG: Text Scale: 			%.f", config.textScale));
     TraceLog(LOG_INFO, TextFormat("CONFIG: Padding: 			%.f", config.padding));
     TraceLog(LOG_INFO, TextFormat("CONFIG: Disappear: 			%s", config.disappear ? "TRUE" : "FALSE"));
     TraceLog(LOG_INFO, TextFormat("CONFIG: Change Animation: 	%s", config.changeAnimation ? "TRUE" : "FALSE"));
+    TraceLog(LOG_INFO, TextFormat("CONFIG: Monitor: 			%i", config.monitor));
 
 free_all:
     ini_destroy(ini);
     UnloadFileText(file);
+}
+
+void InitTextTexture()
+{
+    // Move to the top of the current monitor
+    int monitor = config.monitor;
+    int monitorCount = 0;
+    glfwGetMonitors(&monitorCount);
+    // Make sure its a valid monitor!
+    monitor = (int)Clamp(monitor, 0, monitorCount);
+
+    Vector2 monitorPos = GetMonitorPosition(monitor);
+    SetWindowPosition(monitorPos.x, monitorPos.y);
+    SetWindowSize(GetMonitorWidth(monitor), (config.padding * 2) + (tuneFont.baseSize * config.textScale));
+
+    // Create render texture
+    if (IsRenderTextureValid(textTexture))
+    {
+        UnloadRenderTexture(textTexture);
+    }
+
+    textTexture = LoadRenderTexture(GetScreenWidth(), GetScreenHeight());
+    GenerateTuneText();
 }
 
 int main(void)
@@ -338,7 +412,10 @@ int main(void)
     mpris::metadataCallback = [&]()
     {
         if (!config.changeAnimation)
+        {
             currentText = mpris::buildDisplayedText();
+            GenerateTuneText();
+        }
         else
         {
             if (currentState == STATE_APPEARING || currentState == STATE_VISIBLE)
@@ -373,17 +450,15 @@ int main(void)
         if (config.changeAnimation || currentState == STATE_VISIBLE || currentState == STATE_APPEARING)
         {
             currentText = mpris::buildDisplayedText();
+            GenerateTuneText();
         }
     };
 
     // Fonter
-    tuneFont = LoadFont("resources/fonts/MusicTitleFont.fnt");
-    tuneFallbackFont = LoadFont("resources/fonts/ShinonomeGothic.fnt"); // TODO only load glyphs when needed????
+    tuneFont = LoadFont(GetResourcePath("resources/fonts/MusicTitleFont.fnt").c_str());
+    tuneFallbackFont = LoadFont(GetResourcePath("resources/fonts/ShinonomeGothic.fnt").c_str()); // TODO only load glyphs when needed????
 
-    // Move to the top of the current monitor
-    int monitor = GetCurrentMonitor();
-    SetWindowPosition(0, 0);
-    SetWindowSize(GetMonitorWidth(monitor), (config.padding * 2) + (tuneFont.baseSize * config.textScale));
+    InitTextTexture();
 
     // Unfocus window, if possible
     WindowUnfocus();
