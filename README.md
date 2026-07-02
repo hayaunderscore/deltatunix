@@ -15,12 +15,13 @@ You will need:
 - CMake (atleast 3.5+)
 - raylib [6.x]
 - sdbus-c++
+- Qt 6 (when building with tray)
 - A compiler that supports atleast C++20 (which is most nowadays...)
 
 This uses the CMake build system for building.
 
 ```bash
 cmake -B build
-cmake --build build
+cmake --build build -DBUILD_SYSTRAY=ON # On by default; Set this to off to prevent building the system tray module
 ./run.sh # This will run the program
 ```

@@ -4,6 +4,17 @@ project(deltatunix CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+option(BUILD_SYSTRAY "Builds the system tray component (requires Qt)" ON)
+
+if(BUILD_SYSTRAY)
+	set(CMAKE_AUTOMOC ON)
+	set(CMAKE_AUTOUIC ON)
+	set(CMAKE_AUTORCC ON)
+	# Find Qt 6
+	find_package(Qt6 REQUIRED COMPONENTS Widgets)
+endif()
 
 # Adding Raylib
 include(FetchContent)
@@ -37,6 +48,12 @@ add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE})
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib SDBusCpp::sdbus-c++)
+if(BUILD_SYSTRAY)
+	target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
+	target_compile_definitions(${PROJECT_NAME} PUBLIC BUILD_SYSTRAY)
+	qt_add_resources(RESOURCE_FILES resources.qrc)
+	target_sources(${PROJECT_NAME} PRIVATE ${RESOURCE_FILES})
+endif()
 
 # Make sure the executable lands in the release folder
 set_target_properties(${PROJECT_NAME} PROPERTIES

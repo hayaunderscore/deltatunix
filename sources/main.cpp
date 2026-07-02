@@ -2,6 +2,7 @@
 #include "raymath.h"
 // #include "reasings.h"
 #include "mpris.hpp"
+#include "tray.hpp"
 #include "window.hpp"
 #include <GLFW/glfw3.h>
 #include <cstdlib>
@@ -404,8 +405,22 @@ void InitTextTexture()
 	GenerateTuneText();
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+#ifdef BUILD_SYSTRAY
+	QApplication app(argc, argv); // This would go out of scope in tray::init, so just put it here...
+#endif
+
+	tray::init(argc, argv);
+	tray::addAction(
+		"Reload Config",
+		[&]()
+		{
+			LoadConfig();
+			InitTextTexture();
+		},
+		true);
+
 	SetConfigFlags(FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_MOUSE_PASSTHROUGH | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_TOPMOST);
 	InitWindow(1, 1, "");
 	SetTargetFPS(60);
@@ -470,9 +485,10 @@ int main(void)
 	// Also hide from taskbar, if possible
 	WindowHideFromTaskbar();
 
-	while (!WindowShouldClose())
+	while (!WindowShouldClose() && !tray::quitRequested)
 	{
 		mpris::updateConnection();
+		tray::processEvents();
 
 		// TODO: Hover opacity....
 		// Rectangle collisionrec = {positionOffset.x + textRect.x, positionOffset.y + textRect.y, textRect.width, textRect.height};
@@ -503,6 +519,11 @@ int main(void)
 	UnloadFont(tuneFallbackFont);
 
 	CloseWindow();
+
+#ifdef BUILD_SYSTRAY
+	tray::quit();
+	app.quit();
+#endif
 
 	return 0;
 }
