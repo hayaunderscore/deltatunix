@@ -114,6 +114,7 @@ void IterateGeneralNode(const kdl::Node &node, ConfigGeneral &general)
 
 			general.monitor = monitorIndex;
 		}
+		KDL_UTIL_CHANGEVAR(child, general, useWorkArea, u8"use-work-area", bool)
 	}
 }
 

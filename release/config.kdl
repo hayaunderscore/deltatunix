@@ -2,11 +2,11 @@ appearance {
     style "DELTARUNE"
 
     text {
-        text-scale 3.0
+        text-scale 2.0
         padding 24 24 24 24
         offset 0 0
-        align left
-        slide-distance -24
+        align right
+        slide-distance 24
     }
 
     behavior {
@@ -24,4 +24,5 @@ appearance {
 
 general {
     monitor 1
+    use-work-area #true
 }

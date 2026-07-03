@@ -340,9 +340,12 @@ void InitTextTexture()
 	// Make sure its a valid monitor!
 	monitor = (int)Clamp(monitor, 0, monitorCount);
 
-	Vector2 monitorPos = GetMonitorPosition(monitor);
+	Vector2 monitorPos = GetDeterministicMonitorPosition(monitor, !g_config.general.useWorkArea);
+	int monitorWidth = GetDeterministicMonitorWidth(monitor, !g_config.general.useWorkArea);
 	SetWindowPosition(monitorPos.x, monitorPos.y);
-	SetWindowSize(GetMonitorWidth(monitor), (g_config.appearance.text.padding[0] + g_config.appearance.text.padding[2]) + (tuneFont.baseSize * g_config.appearance.text.textScale));
+	SetWindowSize(
+		monitorWidth,
+		(g_config.appearance.text.padding[0] + g_config.appearance.text.padding[2]) + (tuneFont.baseSize * g_config.appearance.text.textScale));
 
 	// Create render texture
 	if (IsRenderTextureValid(textTexture))

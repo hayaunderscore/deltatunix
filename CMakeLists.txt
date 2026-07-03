@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(deltatunix CXX)
+include(cmake/CPM.cmake)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
@@ -7,6 +7,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(BUILD_SYSTRAY "Builds the system tray component (requires Qt)" ON)
+
+# Used for versioning purposes
+set(VERSION_OUT_DIR    "${CMAKE_BINARY_DIR}/sources/")
+set(VERSION_PREFIX     "DELTATUNIX_")
+set(VERSION_H_FILENAME "version.hpp")
+set(VERSION_NAMESPACE  "deltatunix::version")
+CPMAddPackage("gh:BareCpper/Version.cmake@0.4")
+
+project(deltatunix VERSION ${VERSION_SEMANTIC} LANGUAGES CXX)
 
 if(BUILD_SYSTRAY)
 	set(CMAKE_AUTOMOC ON)
@@ -16,37 +25,20 @@ if(BUILD_SYSTRAY)
 	find_package(Qt6 REQUIRED COMPONENTS Widgets)
 endif()
 
-# Adding Raylib
-include(FetchContent)
-set(FETCHCONTENT_QUIET FALSE)
-set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE) # don't build the supplied examples
-set(BUILD_GAMES    OFF CACHE BOOL "" FORCE) # don't build the supplied example games
-# Force GLFW to build without Wayland
-# Undecorated windows do not work under Wayland for some reason...
-set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
-
 # Libraries
 
 # raylib
-FetchContent_Declare(
-    raylib
-    GIT_REPOSITORY "https://github.com/raysan5/raylib.git"
-    GIT_TAG "master"
-    GIT_PROGRESS TRUE
+CPMAddPackage(
+	URI "gh:raysan5/raylib#6.0"
+	OPTIONS "BUILD_EXAMPLES OFF" "BUILD_GAMES OFF" "GLFW_BUILD_WAYLAND OFF"
 )
-FetchContent_MakeAvailable(raylib)
-
 # ckdl
-set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(
-	ckdl
-    GIT_REPOSITORY "https://github.com/tjol/ckdl.git"
-    GIT_TAG "main"
-    GIT_PROGRESS TRUE
+CPMAddPackage(
+	NAME ckdl
+	GITHUB_REPOSITORY "tjol/ckdl"
+	GIT_TAG main
+	OPTIONS "BUILD_TESTS OFF"
 )
-FetchContent_MakeAvailable(ckdl)
-# Find version sha for the funny:tm:
-FetchContent_GetProperties(ckdl SOURCE_DIR ckdl_SOURCE_DIR)
 execute_process(
 	COMMAND git rev-parse --short HEAD
 	WORKING_DIRECTORY ${ckdl_SOURCE_DIR}
@@ -62,10 +54,13 @@ file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/s
 set(PROJECT_INCLUDE "${CMAKE_CURRENT_LIST_DIR}/sources/") # Define PROJECT_INCLUDE to be the path to the include directory of the project
 
 # Declaring our executable
+if(NOT VERSION_SET)
+    message(FATAL_ERROR "Version.cmake is required")
+endif()
 add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE})
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib SDBusCpp::sdbus-c++ kdl kdlpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE raylib SDBusCpp::sdbus-c++ kdl kdlpp version::version)
 if(BUILD_SYSTRAY)
 	target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
 	target_compile_definitions(${PROJECT_NAME} PUBLIC BUILD_SYSTRAY)

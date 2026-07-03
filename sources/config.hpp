@@ -52,6 +52,7 @@ struct ConfigAppearance
 struct ConfigGeneral
 {
 	int monitor;
+	bool useWorkArea = true;
 };
 
 struct Config

@@ -1,3 +1,4 @@
+#include <external/glfw/include/GLFW/glfw3.h>
 #ifdef __linux__
 #include <X11/Xlib.h>
 #define GLFW_EXPOSE_NATIVE_X11

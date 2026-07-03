@@ -21,6 +21,8 @@
 #include <kdlpp.h>
 #include <qwidget.h>
 
+#include "version.hpp"
+
 QT_BEGIN_NAMESPACE
 
 class Ui_LinkNameAndDescWidget
@@ -252,7 +254,9 @@ class Ui_AboutDeltatunix
 	{
 		AboutDeltatunix->setWindowTitle(QCoreApplication::translate("AboutDeltatunix", "About DeltaTunix", nullptr));
 		label_2->setText(QCoreApplication::translate("AboutDeltatunix", "<html><head/><body><p><img src=\":/icon_about.png\"/></p></body></html>", nullptr));
-		label_4->setText(QCoreApplication::translate("AboutDeltatunix", "<html><head/><body><p><span style=\" font-size:16pt;\">DeltaTunix</span><br>Version 0.0.1</p></body></html>", nullptr));
+		std::string version = std::string(DELTATUNIX__VERSION_FULL).erase(0, 1);
+		const char *aboutText = TextFormat("<html><head/><body><p><span style=\" font-size:16pt;\">DeltaTunix</span><br>Version %s</p></body></html>", version.c_str());
+		label_4->setText(QCoreApplication::translate("AboutDeltatunix", aboutText, nullptr));
 		label->setText(QCoreApplication::translate("AboutDeltatunix", "<html><head/><body><p>DeltaTunix is a clone of <a href=\"https://github.com/ToadsworthLP/deltatune\"><span style=\" text-decoration: underline; color:#0000ff;\">DeltaTune</span></a> by Toastworth that brings a Deltarune style music indicator to the desktop.</p><p>(c) 2026 Haya</p><p>DELTARUNE was created by Toby Fox.<br>Not affiliated with or endorsed by Toby Fox.</p><p><a href=\"https://github.com/hayaunderscore/deltatunix\"><span style=\" text-decoration: underline; color:#0000ff;\">https://github.com/hayaunderscore/deltatunix</span></a><br><a href=\"https://zlib.net/zlib_license.html\"><span style=\" text-decoration: underline; color:#0000ff;\">Licensed under the zlib license.</span></a></p></body></html>", nullptr));
 		atabWidget->setTabText(atabWidget->indexOf(componentsTab), QCoreApplication::translate("AboutDeltatunix", "Components", nullptr));
 		atabWidget->setTabText(atabWidget->indexOf(creditsTab), QCoreApplication::translate("AboutDeltatunix", "Credits", nullptr));
