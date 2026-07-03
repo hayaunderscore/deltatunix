@@ -56,6 +56,19 @@ void IterateAppearanceNode(const kdl::Node &node, ConfigAppearance &appearance)
 					if (val == u8"right")
 						appearance.text.align = ALIGN_RIGHT;
 				}
+				if (textChild.name() == u8"valign")
+				{
+					// TODO lowercase
+					std::u8string val = textChild.args()[0].as<std::u8string>();
+					utf8lwr(val.data());
+
+					if (val == u8"top")
+						appearance.text.valign = ALIGN_TOP;
+					if (val == u8"center")
+						appearance.text.valign = ALIGN_VCENTER;
+					if (val == u8"bottom")
+						appearance.text.valign = ALIGN_BOTTOM;
+				}
 				KDL_UTIL_CHANGEVAR(textChild, appearance.text, slideDistance, u8"slide-distance", float)
 			}
 		}

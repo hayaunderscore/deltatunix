@@ -6,12 +6,13 @@ appearance {
         padding 24 24 24 24
         offset 0 0
         align right
+        valign center
         slide-distance 24
     }
 
     behavior {
         change-animation #true
-        disappear #false
+        disappear #true
     }
 
     timing {

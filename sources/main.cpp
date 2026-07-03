@@ -342,10 +342,24 @@ void InitTextTexture()
 
 	Vector2 monitorPos = GetDeterministicMonitorPosition(monitor, !g_config.general.useWorkArea);
 	int monitorWidth = GetDeterministicMonitorWidth(monitor, !g_config.general.useWorkArea);
-	SetWindowPosition(monitorPos.x, monitorPos.y);
-	SetWindowSize(
-		monitorWidth,
-		(g_config.appearance.text.padding[0] + g_config.appearance.text.padding[2]) + (tuneFont.baseSize * g_config.appearance.text.textScale));
+	int monitorHeight = GetDeterministicMonitorHeight(monitor, !g_config.general.useWorkArea);
+	int textHeight = (g_config.appearance.text.padding[0] + g_config.appearance.text.padding[2]) + (tuneFont.baseSize * g_config.appearance.text.textScale);
+
+	float valign = 0.0f;
+	switch (g_config.appearance.text.valign)
+	{
+	case config::ALIGN_TOP:
+		break; // this is already the default (0.0)
+	case config::ALIGN_VCENTER:
+		valign = 0.5f;
+		break;
+	case config::ALIGN_BOTTOM:
+		valign = 1.0f;
+		break;
+	}
+
+	SetWindowPosition(monitorPos.x, Lerp(monitorPos.y, monitorHeight - textHeight, valign));
+	SetWindowSize(monitorWidth, textHeight);
 
 	// Create render texture
 	if (IsRenderTextureValid(textTexture))

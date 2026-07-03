@@ -12,6 +12,13 @@ enum AppearanceAlignment
 	ALIGN_RIGHT,
 };
 
+enum AppearanceVerticalAlignment
+{
+	ALIGN_TOP,
+	ALIGN_VCENTER,
+	ALIGN_BOTTOM,
+};
+
 enum AppearanceStyle
 {
 	STYLE_DELTARUNE,
@@ -24,6 +31,7 @@ struct ConfigAppearanceText
 	float padding[4];
 	Vector2 offset;
 	AppearanceAlignment align = ALIGN_RIGHT;
+	AppearanceVerticalAlignment valign = ALIGN_TOP;
 	float slideDistance = 24;
 };
 
