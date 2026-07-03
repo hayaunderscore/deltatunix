@@ -2,6 +2,7 @@
 #ifndef ABOUTVWVSYB_H
 #define ABOUTVWVSYB_H
 
+#include "kdlpp.h"
 #include "raylib.h"
 #include <QScrollArea>
 #include <QtCore/QVariant>
@@ -17,6 +18,7 @@
 #include <QtWidgets/QTabWidget>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
+#include <kdlpp.h>
 #include <qwidget.h>
 
 QT_BEGIN_NAMESPACE
@@ -68,7 +70,8 @@ class Ui_LinkNameAndDescWidget
 			urlButton->setToolTip(QString(TextFormat("Visit component's homepage\n%s", link.toStdString().c_str())));
 		else
 			urlButton->setToolTip(QString(TextFormat("Visit author's homepage\n%s", link.toStdString().c_str())));
-		widget->connect(urlButton, &QPushButton::clicked, [&]() { OpenURL(link.toStdString().c_str()); });
+		widget->connect(urlButton, &QPushButton::clicked, [&]()
+						{ OpenURL(link.toStdString().c_str()); });
 	} // retranslateUi
 };
 
@@ -168,9 +171,9 @@ class Ui_AboutDeltatunix
 		componentsTab->setObjectName("componentsTab");
 		verticalLayout_3 = new QVBoxLayout(componentsTab);
 
-		setupComponentWidget(componentsTab, "raylib", "6.0", "A programming library to enjoy videogames programming", "https://www.raylib.com/");
-		setupComponentWidget(componentsTab, "sdbus-c++", "2.3.1", "High-level C++ D-Bus library for Linux", "https://github.com/Kistler-Group/sdbus-cpp/");
-		setupComponentWidget(componentsTab, "ini.h", "1.2", "Simple ini-file reader for C/C++", "https://github.com/mattiasgustavsson/libs/");
+		setupComponentWidget(componentsTab, "raylib", RAYLIB_VERSION, "A programming library to enjoy videogames programming", "https://www.raylib.com/");
+		setupComponentWidget(componentsTab, "sdbus-c++", SDBUSCPP_VERSION, "High-level C++ D-Bus library for Linux", "https://github.com/Kistler-Group/sdbus-cpp/");
+		setupComponentWidget(componentsTab, "ckdl", CKDL_VERSION, "KDL parsing library in C, Python, C++", "https://github.com/tjol/ckdl/");
 		setupComponentWidget(componentsTab, "Qt", qVersion(), "Cross-platform application development framework.", "https://qt.io/");
 
 		for (const auto &widget : componentWidgets)
@@ -255,7 +258,8 @@ class Ui_AboutDeltatunix
 		atabWidget->setTabText(atabWidget->indexOf(creditsTab), QCoreApplication::translate("AboutDeltatunix", "Credits", nullptr));
 		aboutQtButton->setText(QCoreApplication::translate("AboutDeltatunix", "About Qt", nullptr));
 		closeButton->setText(QCoreApplication::translate("AboutDeltatunix", "Close", nullptr));
-		QObject::connect(aboutQtButton, &QPushButton::clicked, [&]() { QApplication::aboutQt(); });
+		QObject::connect(aboutQtButton, &QPushButton::clicked, [&]()
+						 { QApplication::aboutQt(); });
 	} // retranslateUi
 };
 

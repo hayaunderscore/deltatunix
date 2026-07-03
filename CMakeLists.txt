@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.12)
 project(deltatunix CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -36,6 +36,24 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(raylib)
 
+# ckdl
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+	ckdl
+    GIT_REPOSITORY "https://github.com/tjol/ckdl.git"
+    GIT_TAG "main"
+    GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(ckdl)
+# Find version sha for the funny:tm:
+FetchContent_GetProperties(ckdl SOURCE_DIR ckdl_SOURCE_DIR)
+execute_process(
+	COMMAND git rev-parse --short HEAD
+	WORKING_DIRECTORY ${ckdl_SOURCE_DIR}
+	OUTPUT_VARIABLE CKDL_COMMIT_SHA
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 # sdbus-cpp
 find_package(sdbus-c++ REQUIRED)
 
@@ -47,7 +65,7 @@ set(PROJECT_INCLUDE "${CMAKE_CURRENT_LIST_DIR}/sources/") # Define PROJECT_INCLU
 add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE})
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib SDBusCpp::sdbus-c++)
+target_link_libraries(${PROJECT_NAME} PRIVATE raylib SDBusCpp::sdbus-c++ kdl kdlpp)
 if(BUILD_SYSTRAY)
 	target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
 	target_compile_definitions(${PROJECT_NAME} PUBLIC BUILD_SYSTRAY)
@@ -66,5 +84,7 @@ if((LINUX) AND (CMAKE_SIZEOF_VOID_P EQUAL 8))
 	set(CMAKE_EXECUTABLE_SUFFIX ".x86_64")
 endif()
 
-# Setting ASSETS_PATH
+# Setting various compile definitions
 target_compile_definitions(${PROJECT_NAME} PUBLIC ASSETS_PATH="resources/")
+target_compile_definitions(${PROJECT_NAME} PUBLIC SDBUSCPP_VERSION="${sdbus-c++_VERSION}")
+target_compile_definitions(${PROJECT_NAME} PUBLIC CKDL_VERSION="1.0-${CKDL_COMMIT_SHA}")

@@ -1,0 +1,27 @@
+appearance {
+    style "DELTARUNE"
+
+    text {
+        text-scale 3.0
+        padding 24 24 24 24
+        offset 0 0
+        align left
+        slide-distance -24
+    }
+
+    behavior {
+        change-animation #true
+        disappear #false
+    }
+
+    timing {
+        appear-delay 0.5
+        appear-duration 0.75
+        disappear-duration 0.75
+        stay-time 2.5
+    }
+}
+
+general {
+    monitor 1
+}

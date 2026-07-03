@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "raymath.h"
 // #include "reasings.h"
+#include "config.hpp"
 #include "mpris.hpp"
 #include "tray.hpp"
 #include "window.hpp"
@@ -9,9 +10,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-#define INI_IMPLEMENTATION
-#include "ini.h"
 
 inline constexpr const char *HOME_RESOURCE_PATH = "/.config/deltatunix/";
 inline constexpr const char *GLOBAL_RESOURCE_PATH = "/usr/share/deltatunix/";
@@ -44,31 +42,9 @@ enum TextState
 	STATE_DISAPPEARING,
 };
 
-// TODO: Probably not make these constant??? Let the user change them I suppose
-inline constexpr float APPEAR_DELAY_LENGTH = 0.5f;
-inline constexpr float APPEAR_ANIMATION_LENGTH = 0.75f;
-inline constexpr float DISAPPEAR_ANIMATION_LENGTH = 0.75f;
-inline constexpr float STAY_TIME = 2.5f;
-inline constexpr float SLIDE_IN_DISTANCE = 24;
-inline constexpr float SLIDE_OUT_DISTANCE = 24;
-inline constexpr const char *CONFIG_FILE = "config.ini";
+inline constexpr const char *CONFIG_FILE = "config.kdl";
 
-struct Config
-{
-	float textScale;
-	float padding;
-	bool disappear;
-	bool changeAnimation;
-	int monitor;
-};
-
-Config config = {
-	.textScale = 2.0f,
-	.padding = 24.0f,
-	.disappear = false,
-	.changeAnimation = true,
-	.monitor = 0,
-};
+config::Config g_config;
 
 TextState currentState = STATE_HIDDEN;
 TextState lastState = STATE_HIDDEN;
@@ -189,8 +165,8 @@ void DrawTextExWithFallback(Font font, Font fallbackFont, const char *text, Vect
 			if ((codepoint != ' ') && (codepoint != '\t'))
 			{
 				// WHY ARE YOU BIG
-				float size = (chosenFont == &font) ? fontSize : 12 * config.textScale;
-				float addY = (chosenFont == &fallbackFont) ? (3 * config.textScale) : 0;
+				float size = (chosenFont == &font) ? fontSize : 12 * g_config.appearance.text.textScale;
+				float addY = (chosenFont == &fallbackFont) ? (3 * g_config.appearance.text.textScale) : 0;
 				DrawTextCodepoint(*chosenFont, codepoint, (Vector2){position.x + textOffsetX, position.y + textOffsetY + addY}, size, tint);
 			}
 
@@ -213,20 +189,33 @@ void GenerateTuneText()
 		return;
 
 	// Get the size of the text to draw
-	Vector2 textSize = MeasureTextExWithFallback(tuneFont, tuneFallbackFont, currentText.c_str(), tuneFont.baseSize * config.textScale, 0);
+	Vector2 textSize = MeasureTextExWithFallback(tuneFont, tuneFallbackFont, currentText.c_str(), tuneFont.baseSize * g_config.appearance.text.textScale, 0);
 
 	BeginTextureMode(textTexture);
 
 	ClearBackground(BLANK);
 
+	float align = 0.0f;
+	switch (g_config.appearance.text.align)
+	{
+	case config::ALIGN_LEFT:
+		break; // this is already the default (0.0)
+	case config::ALIGN_CENTER:
+		align = 0.5f;
+		break;
+	case config::ALIGN_RIGHT:
+		align = 1.0f;
+		break;
+	}
+
 	// Calculate the top-left text position based on the rectangle and
 	// alignment
-	Rectangle rect = {config.padding, config.padding, (float)GetScreenWidth() - (config.padding * 2), (float)GetScreenHeight() - (config.padding * 2)};
-	Vector2 textPos = (Vector2){rect.x + Lerp(0.0f, rect.width - textSize.x, 1.0f), rect.y + Lerp(0.0f, rect.height - textSize.y, 0.5f)};
+	Rectangle rect = {g_config.appearance.text.padding[3], g_config.appearance.text.padding[0], (float)GetScreenWidth() - (g_config.appearance.text.padding[1] * 2), (float)GetScreenHeight() - (g_config.appearance.text.padding[2] * 2)};
+	Vector2 textPos = (Vector2){rect.x + Lerp(0.0f, rect.width - textSize.x, align), rect.y};
 
 	textRect = (Rectangle){textPos.x, textPos.y, textSize.x, textSize.y};
 
-	DrawTextExWithFallback(tuneFont, tuneFallbackFont, currentText.c_str(), textPos, tuneFont.baseSize * config.textScale, 0, WHITE);
+	DrawTextExWithFallback(tuneFont, tuneFallbackFont, currentText.c_str(), textPos, tuneFont.baseSize * g_config.appearance.text.textScale, 0, WHITE);
 
 	EndTextureMode();
 }
@@ -245,7 +234,7 @@ void DrawTuneText()
 	alph.a = opacity * 255 * opacityMul;
 
 	Rectangle srcrec = {0, 0, (float)textTexture.texture.width, (float)-textTexture.texture.height};
-	Rectangle dstrec = {positionOffset.x, positionOffset.y, (float)textTexture.texture.width, (float)textTexture.texture.height};
+	Rectangle dstrec = {positionOffset.x + g_config.appearance.text.offset.x, positionOffset.y + g_config.appearance.text.offset.y, (float)textTexture.texture.width, (float)textTexture.texture.height};
 	DrawTexturePro(textTexture.texture, srcrec, dstrec, {}, 0, alph);
 }
 
@@ -270,7 +259,7 @@ void UpdateTuneState()
 			positionOffset.x = 0;
 		}
 
-		if (animationTimer >= APPEAR_DELAY_LENGTH)
+		if (animationTimer >= g_config.appearance.timing.appearDelay)
 			currentState = STATE_APPEARING;
 		break;
 
@@ -279,7 +268,7 @@ void UpdateTuneState()
 		{
 			opacity = 0;
 			positionOffset.x = 0;
-			if (config.changeAnimation)
+			if (g_config.appearance.behavior.changeAnimation)
 			{
 				currentText = mpris::buildDisplayedText();
 				GenerateTuneText();
@@ -287,12 +276,12 @@ void UpdateTuneState()
 			queuedText = false;
 		}
 
-		progress = (animationTimer / APPEAR_ANIMATION_LENGTH);
+		progress = (animationTimer / g_config.appearance.timing.appearDuration);
 
 		opacity = Clamp(progress * 1.5f - 0.25f, 0, 1);
-		positionOffset.x = InterpolateQuadratic(SLIDE_IN_DISTANCE * config.textScale, 0, progress);
+		positionOffset.x = InterpolateQuadratic(g_config.appearance.text.slideDistance * g_config.appearance.text.textScale, 0, progress);
 
-		if (animationTimer >= APPEAR_ANIMATION_LENGTH)
+		if (animationTimer >= g_config.appearance.timing.appearDuration)
 			currentState = STATE_VISIBLE;
 		break;
 
@@ -303,7 +292,7 @@ void UpdateTuneState()
 			positionOffset.x = 0;
 		}
 
-		if (animationTimer >= STAY_TIME && config.disappear)
+		if (animationTimer >= g_config.appearance.timing.stayTime && g_config.appearance.behavior.disappear)
 			currentState = STATE_DISAPPEARING;
 		break;
 
@@ -314,12 +303,12 @@ void UpdateTuneState()
 			positionOffset.x = 0;
 		}
 
-		progress = (animationTimer / DISAPPEAR_ANIMATION_LENGTH);
+		progress = (animationTimer / g_config.appearance.timing.disppearDuration);
 
 		opacity = 1.0 - Clamp(progress * 1.5f - 0.25f, 0, 1);
-		positionOffset.x = InterpolateQuadratic(SLIDE_OUT_DISTANCE * config.textScale, 0, 1 - progress);
+		positionOffset.x = InterpolateQuadratic(-g_config.appearance.text.slideDistance * g_config.appearance.text.textScale, 0, 1 - progress);
 
-		if (animationTimer >= DISAPPEAR_ANIMATION_LENGTH)
+		if (animationTimer >= g_config.appearance.timing.disppearDuration)
 			currentState = queuedText ? STATE_APPEARING : STATE_HIDDEN;
 		break;
 
@@ -336,56 +325,16 @@ void UpdateTuneState()
 	}
 }
 
-const char *get_ini_property(const ini_t *ini, const char *property, int section = INI_GLOBAL_SECTION, const char *defaultValue = "")
-{
-	int idx = ini_find_property(ini, section, property, strlen(property));
-	if (idx == INI_NOT_FOUND)
-		return defaultValue;
-	return ini_property_value(ini, section, idx);
-}
-
 void LoadConfig()
 {
-	char *file = LoadFileText(GetResourcePath(CONFIG_FILE).c_str());
-	if (file == NULL)
-	{
-		TraceLog(LOG_ERROR, "CONFIG: Could not parse config!");
-		return;
-	}
-
-	ini_t *ini = ini_load(file, NULL);
-	int general_section = ini_find_section(ini, "General", 0);
-	if (general_section == INI_NOT_FOUND)
-	{
-		TraceLog(LOG_ERROR, "CONFIG: Could not find General section in config!");
-		goto free_all;
-	}
-
-	// now set le config
-	config.textScale = std::stod(get_ini_property(ini, "TextScale", general_section, "2.0"));
-	config.padding = std::stod(get_ini_property(ini, "Padding", general_section, "24"));
-	bool b;
-	std::istringstream(get_ini_property(ini, "Disappear", general_section, "False")) >> b;
-	config.disappear = b;
-	std::istringstream(get_ini_property(ini, "ChangeAnimation", general_section, "True")) >> b;
-	config.changeAnimation = b;
-	config.monitor = std::stoi(get_ini_property(ini, "Monitor", general_section, "0"));
-
-	TraceLog(LOG_INFO, TextFormat("CONFIG: Text Scale: 			%.f", config.textScale));
-	TraceLog(LOG_INFO, TextFormat("CONFIG: Padding: 			%.f", config.padding));
-	TraceLog(LOG_INFO, TextFormat("CONFIG: Disappear: 			%s", config.disappear ? "TRUE" : "FALSE"));
-	TraceLog(LOG_INFO, TextFormat("CONFIG: Change Animation: 	%s", config.changeAnimation ? "TRUE" : "FALSE"));
-	TraceLog(LOG_INFO, TextFormat("CONFIG: Monitor: 			%i", config.monitor));
-
-free_all:
-	ini_destroy(ini);
-	UnloadFileText(file);
+	// well then.
+	g_config = config::LoadConfig(GetResourcePath(CONFIG_FILE));
 }
 
 void InitTextTexture()
 {
 	// Move to the top of the current monitor
-	int monitor = config.monitor;
+	int monitor = g_config.general.monitor;
 	int monitorCount = 0;
 	glfwGetMonitors(&monitorCount);
 	// Make sure its a valid monitor!
@@ -393,7 +342,7 @@ void InitTextTexture()
 
 	Vector2 monitorPos = GetMonitorPosition(monitor);
 	SetWindowPosition(monitorPos.x, monitorPos.y);
-	SetWindowSize(GetMonitorWidth(monitor), (config.padding * 2) + (tuneFont.baseSize * config.textScale));
+	SetWindowSize(GetMonitorWidth(monitor), (g_config.appearance.text.padding[0] + g_config.appearance.text.padding[2]) + (tuneFont.baseSize * g_config.appearance.text.textScale));
 
 	// Create render texture
 	if (IsRenderTextureValid(textTexture))
@@ -431,7 +380,7 @@ int main(int argc, char **argv)
 	// Add a callback
 	mpris::metadataCallback = [&]()
 	{
-		if (!config.changeAnimation)
+		if (!g_config.appearance.behavior.changeAnimation)
 		{
 			currentText = mpris::buildDisplayedText();
 			GenerateTuneText();
@@ -459,7 +408,7 @@ int main(int argc, char **argv)
 	};
 	mpris::stoppedCallback = [&]()
 	{
-		if (currentState != STATE_HIDDEN && !config.disappear)
+		if (currentState != STATE_HIDDEN && !g_config.appearance.behavior.disappear)
 		{
 			currentState = STATE_DISAPPEARING;
 			animationTimer = 0;
@@ -467,7 +416,7 @@ int main(int argc, char **argv)
 	};
 	mpris::pausedCallback = [&](bool paused)
 	{
-		if (config.changeAnimation || currentState == STATE_VISIBLE || currentState == STATE_APPEARING)
+		if (g_config.appearance.behavior.changeAnimation || currentState == STATE_VISIBLE || currentState == STATE_APPEARING)
 		{
 			currentText = mpris::buildDisplayedText();
 			GenerateTuneText();

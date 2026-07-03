@@ -9,3 +9,4 @@ build/
 out/
 release/*.x86_64
 CMakeSettings.json
+__cmake_systeminformation/
