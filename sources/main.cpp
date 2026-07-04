@@ -2,6 +2,7 @@
 #include "raymath.h"
 // #include "reasings.h"
 #include "config.hpp"
+#include "font.hpp"
 #include "mpris.hpp"
 #include "tray.hpp"
 #include "window.hpp"
@@ -11,21 +12,23 @@
 #include <string>
 #include <vector>
 
-inline constexpr const char *HOME_RESOURCE_PATH = "/.config/deltatunix/";
+inline constexpr const char *HOME_RESOURCE_PATH = "/.local/share/deltatunix/";
 inline constexpr const char *GLOBAL_RESOURCE_PATH = "/usr/share/deltatunix/";
 
 // Helper to get resources
 std::string GetResourcePath(const std::string &path)
 {
-	// CHECK 1: EXECUTABLE DIRECTORY
-	if (FileExists((GetApplicationDirectory() + path).c_str()))
-		return GetApplicationDirectory() + path;
 #ifdef __unix__
-	// CHECK 2: $HOME/.config/deltatunix/
+	// CHECK 1: $HOME/.local/share/deltatunix/
 	const char *home = getenv("HOME");
 	std::string expanded = (home + std::string(HOME_RESOURCE_PATH) + path);
 	if (FileExists(expanded.c_str()))
 		return expanded.c_str();
+#endif
+	// CHECK 2: EXECUTABLE DIRECTORY
+	if (FileExists((GetApplicationDirectory() + path).c_str()))
+		return GetApplicationDirectory() + path;
+#ifdef __unix__
 	// CHECK 3: /usr/share/deltatunix/
 	return GLOBAL_RESOURCE_PATH + path;
 #else
@@ -52,8 +55,7 @@ double animationTimer = 0;
 double opacity = 0;
 Vector2 positionOffset = {0, 0};
 
-Font tuneFont;
-Font tuneFallbackFont; // For JP glyphs
+Font kochiFont;
 
 std::string currentText;
 bool queuedText;
@@ -88,7 +90,7 @@ Vector2 MeasureTextExWithFallback(Font font, Font fallbackFont, const char *text
 		index = GetGlyphIndex(font, letter);
 		Font *chosenFont = &font;
 
-		if (font.glyphs[index].value != letter)
+		if (font.glyphs[index].value != letter && IsFontValid(fallbackFont))
 		{
 			chosenFont = &fallbackFont;
 			index = GetGlyphIndex(*chosenFont, letter);
@@ -127,69 +129,44 @@ Vector2 MeasureTextExWithFallback(Font font, Font fallbackFont, const char *text
 	return textSize;
 }
 
-// Edit of DrawTextEx to add support for an additional fallback font
-void DrawTextExWithFallback(Font font, Font fallbackFont, const char *text, Vector2 position, float fontSize, float spacing, Color tint)
-{
-	if (font.texture.id == 0)
-		font = GetFontDefault(); // Security check in case of not valid font
-
-	int size = TextLength(text); // Total size in bytes of the text, scanned by codepoints in loop
-
-	float textOffsetY = 0;	  // Offset between lines (on linebreak '\n')
-	float textOffsetX = 0.0f; // Offset X to next character to draw
-
-	float scaleFactor = fontSize / font.baseSize; // Character quad scaling factor
-
-	for (int i = 0; i < size;)
-	{
-		// Get next codepoint from byte string and glyph index in font
-		int codepointByteCount = 0;
-		int codepoint = GetCodepointNext(&text[i], &codepointByteCount);
-		int index = GetGlyphIndex(font, codepoint);
-		Font *chosenFont = &font;
-
-		if (font.glyphs[index].value != codepoint)
-		{
-			chosenFont = &fallbackFont;
-			index = GetGlyphIndex(*chosenFont, codepoint);
-		}
-
-		if (codepoint == '\n')
-		{
-			// NOTE: Line spacing is a global variable, use SetTextLineSpacing() to setup
-			textOffsetY += (fontSize);
-			textOffsetX = 0.0f;
-		}
-		else
-		{
-			if ((codepoint != ' ') && (codepoint != '\t'))
-			{
-				// WHY ARE YOU BIG
-				float size = (chosenFont == &font) ? fontSize : 12 * g_config.appearance.text.textScale;
-				float addY = (chosenFont == &fallbackFont) ? (3 * g_config.appearance.text.textScale) : 0;
-				DrawTextCodepoint(*chosenFont, codepoint, (Vector2){position.x + textOffsetX, position.y + textOffsetY + addY}, size, tint);
-			}
-
-			if (chosenFont->glyphs[index].advanceX == 0)
-				textOffsetX += ((float)chosenFont->recs[index].width * scaleFactor + spacing);
-			else
-				textOffsetX += ((float)chosenFont->glyphs[index].advanceX * scaleFactor + spacing);
-		}
-
-		i += codepointByteCount; // Move text bytes counter to next codepoint
-	}
-}
-
 RenderTexture2D textTexture;
 Rectangle textRect;
+Vector2 textSize;
 
 void GenerateTuneText()
 {
 	if (currentText.empty())
 		return;
 
-	// Get the size of the text to draw
-	Vector2 textSize = MeasureTextExWithFallback(tuneFont, tuneFallbackFont, currentText.c_str(), tuneFont.baseSize * g_config.appearance.text.textScale, 0);
+	Font *fon = &font::tuneFont;
+	Font *backupFon = &font::tuneFallbackFont;
+	int size = fon->baseSize;
+	bool touhou = g_config.appearance.style == config::STYLE_TOUHOU;
+
+	// Touhou fonts tend to use a Gothic font for this
+	// Obviously bundling MS Gothic is not really allowed, so use IPA Gothic instead
+	// (originally this said Kochi Gothic, but Kochi Gothic did not have the music symbol. Whoops.)
+	if (touhou)
+	{
+		// Only load the glyphs necessary...
+		if (IsFontValid(kochiFont))
+		{
+			UnloadFont(kochiFont);
+		}
+
+		size = g_config.appearance.text.textSize;
+
+		int codepointCount = 0;
+		int *codepoints = LoadCodepoints(currentText.c_str(), &codepointCount);
+		kochiFont = font::generateFontByFontName(g_config.appearance.text.font, size * g_config.appearance.text.textScale, codepoints, codepointCount);
+		SetTextureFilter(kochiFont.texture, TEXTURE_FILTER_BILINEAR);
+		UnloadCodepoints(codepoints);
+
+		fon = &kochiFont;
+		backupFon = fon; // We don't really need a backup font...
+	}
+
+	textSize = MeasureTextExWithFallback(*fon, *backupFon, currentText.c_str(), size * g_config.appearance.text.textScale, 0);
 
 	BeginTextureMode(textTexture);
 
@@ -210,12 +187,32 @@ void GenerateTuneText()
 
 	// Calculate the top-left text position based on the rectangle and
 	// alignment
-	Rectangle rect = {g_config.appearance.text.padding[3], g_config.appearance.text.padding[0], (float)GetScreenWidth() - (g_config.appearance.text.padding[1] * 2), (float)GetScreenHeight() - (g_config.appearance.text.padding[2] * 2)};
+	const config::AppearancePadding &padding = g_config.appearance.text.padding;
+	float paddingAdd = touhou ? 2 : 0; // Text rendered is emboldened in touhou style, also make room for the outline...
+	Rectangle rect = {
+		padding.left + paddingAdd,
+		padding.top + paddingAdd,
+		(float)GetScreenWidth() - ((padding.right + paddingAdd) * 2),
+		(float)GetScreenHeight() - ((padding.bottom + paddingAdd) * 2)};
 	Vector2 textPos = (Vector2){rect.x + Lerp(0.0f, rect.width - textSize.x, align), rect.y};
 
 	textRect = (Rectangle){textPos.x, textPos.y, textSize.x, textSize.y};
 
-	DrawTextExWithFallback(tuneFont, tuneFallbackFont, currentText.c_str(), textPos, tuneFont.baseSize * g_config.appearance.text.textScale, 0, WHITE);
+	if (!touhou)
+		font::drawDeltatuneFont(currentText, textPos, g_config.appearance.text.color);
+	else
+	{
+		font::drawTruetypeFont(
+			kochiFont,
+			currentText,
+			textPos,
+			size,
+			g_config.appearance.text.color,
+			g_config.appearance.text.effects.shadow,
+			g_config.appearance.text.effects.shadowColor,
+			g_config.appearance.text.effects.outline,
+			g_config.appearance.text.effects.outlineColor);
+	}
 
 	EndTextureMode();
 }
@@ -257,6 +254,7 @@ void UpdateTuneState()
 		{
 			opacity = 0;
 			positionOffset.x = 0;
+			positionOffset.y = 0;
 		}
 
 		if (animationTimer >= g_config.appearance.timing.appearDelay)
@@ -268,6 +266,7 @@ void UpdateTuneState()
 		{
 			opacity = 0;
 			positionOffset.x = 0;
+			positionOffset.y = 0;
 			if (g_config.appearance.behavior.changeAnimation)
 			{
 				currentText = mpris::buildDisplayedText();
@@ -278,8 +277,29 @@ void UpdateTuneState()
 
 		progress = (animationTimer / g_config.appearance.timing.appearDuration);
 
-		opacity = Clamp(progress * 1.5f - 0.25f, 0, 1);
-		positionOffset.x = InterpolateQuadratic(g_config.appearance.text.slideDistance * g_config.appearance.text.textScale, 0, progress);
+		if (g_config.appearance.style == config::STYLE_TOUHOU)
+		{
+			opacity = 1.0;
+			float dist = 0;
+			switch (g_config.appearance.text.align)
+			{
+			case config::ALIGN_LEFT:
+				dist = -textSize.x;
+				break;
+			case config::ALIGN_RIGHT:
+				dist = textSize.x;
+				break;
+			default:
+				opacity = Clamp(progress * 1.5f - 0.25f, 0, 1);
+				break;
+			}
+			positionOffset.x = InterpolateQuadratic(dist * g_config.appearance.text.textScale, 0, progress);
+		}
+		else
+		{
+			opacity = Clamp(progress * 1.5f - 0.25f, 0, 1);
+			positionOffset.x = InterpolateQuadratic(g_config.appearance.text.slideDistance * g_config.appearance.text.textScale, 0, progress);
+		}
 
 		if (animationTimer >= g_config.appearance.timing.appearDuration)
 			currentState = STATE_VISIBLE;
@@ -290,6 +310,7 @@ void UpdateTuneState()
 		{
 			opacity = 1;
 			positionOffset.x = 0;
+			positionOffset.y = 0;
 		}
 
 		if (animationTimer >= g_config.appearance.timing.stayTime && g_config.appearance.behavior.disappear)
@@ -301,12 +322,30 @@ void UpdateTuneState()
 		{
 			opacity = 0;
 			positionOffset.x = 0;
+			positionOffset.y = 0;
 		}
 
 		progress = (animationTimer / g_config.appearance.timing.disppearDuration);
 
 		opacity = 1.0 - Clamp(progress * 1.5f - 0.25f, 0, 1);
-		positionOffset.x = InterpolateQuadratic(-g_config.appearance.text.slideDistance * g_config.appearance.text.textScale, 0, 1 - progress);
+		if (g_config.appearance.style == config::STYLE_TOUHOU)
+		{
+			float dist = 0;
+			switch (g_config.appearance.text.valign)
+			{
+			case config::ALIGN_TOP:
+				dist = -g_config.appearance.text.slideDistance;
+				break;
+			case config::ALIGN_BOTTOM:
+				dist = g_config.appearance.text.slideDistance;
+				break;
+			default:
+				break;
+			}
+			positionOffset.y = InterpolateQuadratic(dist * g_config.appearance.text.textScale, 0, 1 - progress);
+		}
+		else
+			positionOffset.x = InterpolateQuadratic(-g_config.appearance.text.slideDistance * g_config.appearance.text.textScale, 0, 1 - progress);
 
 		if (animationTimer >= g_config.appearance.timing.disppearDuration)
 			currentState = queuedText ? STATE_APPEARING : STATE_HIDDEN;
@@ -340,10 +379,13 @@ void InitTextTexture()
 	// Make sure its a valid monitor!
 	monitor = (int)Clamp(monitor, 0, monitorCount);
 
+	float size = g_config.appearance.style == config::STYLE_TOUHOU ? g_config.appearance.text.textSize : font::tuneFont.baseSize;
+	float paddingAdd = g_config.appearance.style == config::STYLE_TOUHOU ? 2 : 0; // Text rendered is emboldened in touhou style, also make room for the outline...
+
 	Vector2 monitorPos = GetDeterministicMonitorPosition(monitor, !g_config.general.useWorkArea);
 	int monitorWidth = GetDeterministicMonitorWidth(monitor, !g_config.general.useWorkArea);
 	int monitorHeight = GetDeterministicMonitorHeight(monitor, !g_config.general.useWorkArea);
-	int textHeight = (g_config.appearance.text.padding[0] + g_config.appearance.text.padding[2]) + (tuneFont.baseSize * g_config.appearance.text.textScale);
+	int textHeight = (g_config.appearance.text.padding.top + g_config.appearance.text.padding.bottom + (paddingAdd * 2)) + (size * g_config.appearance.text.textScale);
 
 	float valign = 0.0f;
 	switch (g_config.appearance.text.valign)
@@ -384,6 +426,7 @@ int main(int argc, char **argv)
 		{
 			LoadConfig();
 			InitTextTexture();
+			GenerateTuneText();
 		},
 		true);
 
@@ -440,9 +483,7 @@ int main(int argc, char **argv)
 		}
 	};
 
-	// Fonter
-	tuneFont = LoadFont(GetResourcePath("resources/fonts/MusicTitleFont.fnt").c_str());
-	tuneFallbackFont = LoadFont(GetResourcePath("resources/fonts/ShinonomeGothic.fnt").c_str()); // TODO only load glyphs when needed????
+	font::init(&g_config);
 
 	InitTextTexture();
 
@@ -481,8 +522,10 @@ int main(int argc, char **argv)
 
 	mpris::leave();
 
-	UnloadFont(tuneFont);
-	UnloadFont(tuneFallbackFont);
+	font::deinit();
+
+	if (IsFontValid(kochiFont))
+		UnloadFont(kochiFont);
 
 	CloseWindow();
 

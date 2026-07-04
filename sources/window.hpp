@@ -1,4 +1,4 @@
-#pragma header
+#pragma once
 
 #include "raymath.h"
 

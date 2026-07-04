@@ -1,7 +1,10 @@
 #include "mpris.hpp"
+#include "config.hpp"
 #include "raylib.h"
 #include <sdbus-c++/Message.h>
 #include <vector>
+
+extern config::Config g_config;
 
 namespace mpris
 {
@@ -45,8 +48,10 @@ void start()
 std::string previousDisplayedText;
 std::string buildDisplayedText()
 {
-	std::string text = "~   ";
-	if (paused)
+	bool touhou = g_config.appearance.style == config::STYLE_TOUHOU;
+
+	std::string text = touhou ? "" : "~   ";
+	if (paused && !touhou)
 		text = "⏸" + text;
 	else
 		text = "♪" + text;

@@ -1,4 +1,4 @@
-# deltatunix
+# DeltaTunix
 
 A portable clone of Toastworth's [DeltaTune](https://github.com/ToadsworthLP/deltatune) for Linux, an overlay that shows the title and artist of whatever song you're playing.
 This uses the MPRIS DBus interface to check for running media players.
@@ -15,6 +15,7 @@ You will need:
 - CMake (atleast 3.5+)
 - raylib [6.x]
 - sdbus-c++
+- Fontconfig
 - Qt 6 (when building with tray)
 - A compiler that supports atleast C++20 (which is most nowadays...)
 

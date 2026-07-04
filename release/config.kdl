@@ -1,29 +1,72 @@
+// Configuration regarding the appearance of the indicator
 appearance {
-    style "DELTARUNE"
+    // The style of the indicator (case insensitive).
+    // "deltarune" - Uses the style as seen in Field/Garden of Hopes and Dreams
+    // "touhou" - emulates th06 style indicator popups. use this if you want to use a custom font
+    style "touhou"
 
+    // Configuration regarding the text itself
+    // These are shared among all styles
     text {
+        text-scale 1.0 // The scale of the text (Default: 1.0)
+        color "#ffffff" // The color/tint of the text (the hashtag can be ommitted)
+
+        padding 24 24 24 24 // CSS-style padding
+        offset 0 0 // Offset in pixels
+
+        align right // Horizontal alignment (valid values: left, center, right)
+        valign top // Vertical alignment (valid values: top, center, bottom)
+
+        slide-distance 24 // Slide distance (does not apply for appearing animation in touhou style)
+    }
+
+    // Properties specific to a style!
+    // Appending a style name next to the text node makes this specific block exclusive to that style
+    text "touhou" {
+        padding 4 4 4 4
+        align left
+        valign bottom
+        color "#e0ffff" // Text color
+
+        // All properties below are specific to the touhou style //
+
+        text-size 24.0 // Text size. self explanatory
+        font "ipag.ttf" /*
+                            This can be a path to a ttf file in the resources/fonts/ folder,
+                            An absolute path to a ttf file,
+                            or a font family name.
+                        */
+
+        // shadow related. if shadow is bigger than 1 a shadow is enabled.
+        shadow 1
+        shadow-color "#000000" // the hashtag can be ommitted
+
+        // outline related. if outline is bigger than 1 an outline is enabled.
+        outline 2
+        outline-color "#000000" // the hashtag can be ommitted
+    }
+
+    text "deltarune" {
         text-scale 2.0
-        padding 24 24 24 24
-        offset 0 0
-        align right
-        valign center
-        slide-distance 24
     }
 
+    // Configuration about specific behavior
     behavior {
-        change-animation #true
-        disappear #true
+        change-animation #true // Should we do a transition animation when a track is changed?
+        disappear #false // Should we disappear after
     }
 
+    // Timings
     timing {
-        appear-delay 0.5
-        appear-duration 0.75
-        disappear-duration 0.75
-        stay-time 2.5
+        appear-delay 0.5 // Delay duration before the indicator appears
+        appear-duration 0.75 // How long should the appear animation be
+        disappear-duration 0.75 // How long should the disappear animation be
+        stay-time 2.5 // How long should it stay (applicably only if behavior.disappear is true)
     }
 }
 
+// Configuration about settings that don't directly correlate to the indicator
 general {
-    monitor 1
-    use-work-area #true
+    monitor 1 // Which monitor should we use?
+    use-work-area #true // Should we use the available work area or use all the monitor area (doesn't apply in some DEs)
 }

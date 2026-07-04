@@ -27,11 +27,14 @@ void init(int argc, char **argv)
 	aboutDialog = std::make_unique<QDialog>();
 	Ui::AboutDeltatunix about;
 	about.setupUi(aboutDialog.get());
-	aboutDialog->connect(about.closeButton, &QPushButton::clicked, [&]() { aboutDialog->hide(); });
+	aboutDialog->connect(about.closeButton, &QPushButton::clicked, [&]()
+						 { aboutDialog->hide(); });
 
-	addAction("About DeltaTunix", [&]() { aboutDialog->show(); });
+	addAction("About DeltaTunix", [&]()
+			  { aboutDialog->show(); });
 	trayMenu->addSeparator();
-	addAction("Quit", [&]() { quitRequested = true; });
+	addAction("Quit", [&]()
+			  { quitRequested = true; });
 
 	trayIconPtr->setContextMenu(trayMenu.get());
 	trayIconPtr->setToolTip("DeltaTunix");

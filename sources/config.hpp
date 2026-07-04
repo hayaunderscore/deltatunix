@@ -1,4 +1,4 @@
-#pragma header
+#pragma once
 
 #include "raylib.h"
 #include <string>
@@ -21,14 +21,32 @@ enum AppearanceVerticalAlignment
 
 enum AppearanceStyle
 {
+	STYLE_NONE = -1, // This doesn't actually get used, but its a placeholder value sooo
 	STYLE_DELTARUNE,
 	STYLE_TOUHOU,
+};
+
+struct AppearancePadding
+{
+	float top, right, bottom, left;
+};
+
+struct AppearanceTextEffects
+{
+	float shadow;
+	Color shadowColor = BLACK;
+	float outline;
+	Color outlineColor = BLACK;
 };
 
 struct ConfigAppearanceText
 {
 	float textScale;
-	float padding[4];
+	float textSize = 16.0f;
+	std::string font = "ipag.ttf";
+	Color color = WHITE;
+	AppearanceTextEffects effects;
+	AppearancePadding padding;
 	Vector2 offset;
 	AppearanceAlignment align = ALIGN_RIGHT;
 	AppearanceVerticalAlignment valign = ALIGN_TOP;
@@ -51,7 +69,7 @@ struct ConfigAppearanceTiming
 
 struct ConfigAppearance
 {
-	std::string style;
+	AppearanceStyle style;
 	ConfigAppearanceText text;
 	ConfigAppearanceBehavior behavior;
 	ConfigAppearanceTiming timing;

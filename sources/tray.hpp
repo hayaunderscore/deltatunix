@@ -1,4 +1,4 @@
-#pragma header
+#pragma once
 
 #include <functional>
 #include <memory>

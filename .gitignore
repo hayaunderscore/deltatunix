@@ -8,5 +8,6 @@ bin/
 build/
 out/
 release/*.x86_64
+release/deltatunix
 CMakeSettings.json
 __cmake_systeminformation/
