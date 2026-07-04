@@ -22,6 +22,11 @@
 #include <qwidget.h>
 
 #include "version.hpp"
+#include <QString>
+#include <fontconfig/fontconfig.h>
+#include <string>
+
+inline const std::string FONTCONFIG_VERSION = std::to_string(FC_MAJOR) + "." + std::to_string(FC_MINOR) + "." + std::to_string(FC_REVISION);
 
 QT_BEGIN_NAMESPACE
 
@@ -176,6 +181,7 @@ class Ui_AboutDeltatunix
 		setupComponentWidget(componentsTab, "raylib", RAYLIB_VERSION, "A programming library to enjoy videogames programming", "https://www.raylib.com/");
 		setupComponentWidget(componentsTab, "sdbus-c++", SDBUSCPP_VERSION, "High-level C++ D-Bus library for Linux", "https://github.com/Kistler-Group/sdbus-cpp/");
 		setupComponentWidget(componentsTab, "ckdl", CKDL_VERSION, "KDL parsing library in C, Python, C++", "https://github.com/tjol/ckdl/");
+		setupComponentWidget(componentsTab, "Fontconfig", QString::fromStdString(FONTCONFIG_VERSION), "A library for configuring and customizing font access", "https://www.freedesktop.org/wiki/Software/fontconfig/");
 		setupComponentWidget(componentsTab, "Qt", qVersion(), "Cross-platform application development framework.", "https://qt.io/");
 
 		for (const auto &widget : componentWidgets)
@@ -196,9 +202,10 @@ class Ui_AboutDeltatunix
 		verticalLayout_4 = new QVBoxLayout(creditsTab);
 
 		setupComponentWidget(creditsTab, "Hayasaka \"Ellen\" Yonii", "", "Main programmer", "https://haya3218.nekoweb.org/", true);
-		setupComponentWidget(creditsTab, "ToastworthLP", "", "Creator of DeltaTune", "https://x.com/Toastworth_", true);
+		setupComponentWidget(creditsTab, "ToastworthLP", "", "Creator of DeltaTune", "https://x.com/Toastworth_/", true);
 		setupComponentWidget(creditsTab, "Citra", "", "Base font", "", true);
-		setupComponentWidget(creditsTab, "Yasuyuki Furukawa", "", "Japanese font (Shinonome)", "http://jikasei.me/font/jf-dotfont", true);
+		setupComponentWidget(creditsTab, "Yasuyuki Furukawa", "", "Japanese font (Shinonome)", "http://jikasei.me/font/jf-dotfont/", true);
+		setupComponentWidget(creditsTab, "IPA", "", "Japanese font (IPA Gothic)", "https://moji.or.jp/ipafont/", true);
 		setupComponentWidget(creditsTab, "Toby Fox", "", "... For DELTARUNE.", "https://deltarune.com/", true);
 
 		for (const auto &widget : componentWidgets)
