@@ -110,6 +110,7 @@ void updateMetadata(const variant_map &properties)
 }
 
 bool lastPaused = false;
+std::string lastStatus = "";
 void updatePlaybackState(const variant_map &properties)
 {
 	if (properties.count("PlaybackStatus") == 0)
@@ -123,11 +124,14 @@ void updatePlaybackState(const variant_map &properties)
 		stoppedCallback();
 		previousDisplayedText = "";
 	}
+	if (lastStatus == "Stopped" && status == "Playing") // Call metadata again, idiot.
+		metadataCallback();
 	if (paused != lastPaused)
 	{
 		lastPaused = paused;
 		pausedCallback(paused);
 	}
+	lastStatus = status;
 }
 
 void updateConnection() { connection->processPendingEvent(); }

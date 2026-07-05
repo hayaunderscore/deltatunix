@@ -44,7 +44,6 @@ If you compiled with the system tray module, there should be a system tray icon 
 
 # Known Issues
 
-- Tune name will not show up when stopping and replaying the same song.
 - Stray pixels when the text has an outline.
 
 # License
