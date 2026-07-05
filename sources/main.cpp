@@ -158,8 +158,12 @@ void GenerateTuneText()
 
 		int codepointCount = 0;
 		int *codepoints = LoadCodepoints(currentText.c_str(), &codepointCount);
-		kochiFont = font::generateFontByFontName(g_config.appearance.text.font, size * g_config.appearance.text.textScale, codepoints, codepointCount);
-		SetTextureFilter(kochiFont.texture, TEXTURE_FILTER_BILINEAR);
+		kochiFont = font::generateFontByFontName(
+			g_config.appearance.text.font,
+			size * g_config.appearance.text.textScale,
+			codepoints,
+			codepointCount,
+			g_config.appearance.text.effects.outline);
 		UnloadCodepoints(codepoints);
 
 		fon = &kochiFont;

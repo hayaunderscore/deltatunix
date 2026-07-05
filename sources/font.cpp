@@ -1,7 +1,13 @@
 #include "font.hpp"
 #include <cmath>
+#include <cstddef>
 #include <fontconfig/fontconfig.h>
+#include <freetype/ftglyph.h>
+#include FT_FREETYPE_H
+#include FT_STROKER_H
 #include <raylib.h>
+#include <stdlib.h>
+#include <vector>
 
 // Defined in main.cpp... should really put this somewhere else
 std::string GetResourcePath(const std::string &path);
@@ -17,8 +23,15 @@ config::Config *dconf; // Reference to a config struct
 Font tuneFont;		   // The base font (MusicTitleFont.fnt)
 Font tuneFallbackFont; // Fallback font, usually for missing JP characters (ShinonomeGothic.fnt)
 
+FT_Library ftLibrary;								 // Freetype library object
+std::unordered_map<unsigned int, Font> outlineFonts; // Fonts, but its an outline instead
+
 void init(config::Config *conf)
 {
+	int error = FT_Init_FreeType(&ftLibrary);
+	if (error)
+		TraceLog(LOG_WARNING, TextFormat("FONT: Failed to initialize Freetype! (Error code %d)", error));
+
 	dconf = conf;
 	// We init Fontconfig here...
 	fconf = FcInitLoadConfigAndFonts();
@@ -27,9 +40,208 @@ void init(config::Config *conf)
 	tuneFallbackFont = LoadFont(GetResourcePath("resources/fonts/ShinonomeGothic.fnt").c_str());
 }
 
-Font generateFontByFontName(std::string font, int fontSize, const int *codepoints, int codepointCount)
+// This only assumes the bitmap pixel mode is gray
+Image FT_BitmapToImage(const FT_Bitmap *bmp)
 {
+	int width = bmp->width;
+	int height = bmp->rows;
+
+	if (width == 0 || height == 0)
+	{
+		TraceLog(LOG_WARNING, TextFormat("FONT: Font bitmap width or height is 0!"));
+		return GenImageColor(1, 1, BLANK);
+	}
+
+	unsigned char *pixels = (unsigned char *)malloc(width * height);
+
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			int index = y * width + x;
+			unsigned char value = bmp->buffer[y * bmp->pitch + x];
+			// pixels[(y * width + x) * 2 + 0] = 255;
+			pixels[index] = value;
+		}
+	}
+
+	Image img = {
+		.data = pixels,
+		.width = width,
+		.height = height,
+		.mipmaps = 1,
+		.format = PIXELFORMAT_UNCOMPRESSED_GRAYSCALE};
+
+	return img;
+}
+
+Font LoadFreetypeFont(std::string font, int fontSize, int *codepoints, int codepointCount, float outline)
+{
+	if (TextIsEqual(GetFileExtension(font.c_str()), ".fnt"))
+		return LoadFont(font.c_str());
+
+	if (ftLibrary == NULL)
+		return LoadFontEx(font.c_str(), fontSize, codepoints, codepointCount);
+
+	FT_Face face;
+	FT_Stroker stroker;
+	int error;
+
+	// Init stroker if we're doing an outline
+	if (outline > 0)
+	{
+		FT_Stroker_New(ftLibrary, &stroker);
+		FT_Stroker_Set(
+			stroker,
+			(int)(outline * 64),
+			FT_STROKER_LINECAP_ROUND,
+			FT_STROKER_LINEJOIN_ROUND,
+			0);
+	}
+
+	error = FT_New_Face(ftLibrary, font.c_str(), 0, &face);
+	if (error)
+	{
+		TraceLog(LOG_WARNING, TextFormat("FONT: Failed to load freetype font! [%s] (Error code %d)", font.c_str(), error));
+		return LoadFontEx(DEFAULT_FONT, fontSize, codepoints, codepointCount);
+	}
+
+	FT_Set_Pixel_Sizes(face, 0, fontSize);
+
+	Font finalFont{};
+	finalFont.baseSize = fontSize;
+	finalFont.glyphCount = 0;
+	finalFont.glyphPadding = 0;
+
+	std::vector<GlyphInfo> glyphs;
+
+	int *codepoint = codepoints;
+	int ascender = face->size->metrics.ascender >> 6;
+
+	for (int i = 0; i < codepointCount; i++)
+	{
+		int glyph_index = FT_Get_Char_Index(face, *codepoint);
+		FT_Bitmap bitmap;
+		GlyphInfo glyphInfo;
+		FT_Glyph strokeGlyph;
+
+		// TraceLog(LOG_INFO, TextFormat("FONT: Loading index %d from codepoint %d", glyph_index, *codepoint));
+
+		if (glyph_index == 0)
+			goto skip_loop;
+
+		error = FT_Load_Glyph(face, glyph_index, FT_LOAD_NO_BITMAP);
+		if (error)
+		{
+			TraceLog(LOG_WARNING, TextFormat("FONT: Failed to load glyph! [%s] (Error code %d)", font.c_str(), error));
+			goto skip_loop;
+		}
+
+		if (outline <= 0)
+		{
+			error = FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL);
+			if (error)
+			{
+				TraceLog(LOG_WARNING, TextFormat("FONT: Failed to render glyph! [%s] (Error code %d)", font.c_str(), error));
+				goto skip_loop;
+			}
+
+			if (face->glyph->bitmap.pixel_mode != FT_PIXEL_MODE_GRAY)
+			{
+				TraceLog(LOG_WARNING, TextFormat("FONT: Font bitmap is not a grayscale bitmap! [%s]", font.c_str()));
+				goto skip_loop;
+			}
+
+			bitmap = face->glyph->bitmap;
+			glyphInfo.offsetX = face->glyph->bitmap_left;
+			glyphInfo.offsetY = ascender - face->glyph->bitmap_top;
+		}
+		else
+		{
+			error = FT_Get_Glyph(face->glyph, &strokeGlyph);
+			if (error)
+			{
+				TraceLog(LOG_WARNING, TextFormat("FONT: Failed to get glyph! [%s] (Error code %d)", font.c_str(), error));
+				goto skip_loop;
+			}
+
+			error = FT_Glyph_StrokeBorder(&strokeGlyph, stroker, 0, 1);
+			if (error)
+			{
+				TraceLog(LOG_WARNING, TextFormat("FONT: Failed to stroke glyph! [%s] (Error code %d)", font.c_str(), error));
+				goto skip_loop;
+			}
+
+			error = FT_Glyph_To_Bitmap(&strokeGlyph, FT_RENDER_MODE_NORMAL, NULL, 1);
+			if (error)
+			{
+				TraceLog(LOG_WARNING, TextFormat("FONT: Failed to render glyph! [%s] (Error code %d)", font.c_str(), error));
+				goto skip_loop;
+			}
+
+			FT_BitmapGlyph bitmapGlyph = (FT_BitmapGlyph)strokeGlyph;
+			bitmap = bitmapGlyph->bitmap;
+			glyphInfo.offsetX = bitmapGlyph->left;
+			glyphInfo.offsetY = ascender - bitmapGlyph->top;
+
+			if (strokeGlyph)
+				FT_Done_Glyph(strokeGlyph);
+		}
+
+		glyphInfo.advanceX = face->glyph->advance.x >> 6;
+		glyphInfo.value = *codepoint;
+		glyphInfo.image = FT_BitmapToImage(&bitmap);
+
+		glyphs.push_back(glyphInfo);
+		finalFont.glyphCount++;
+
+	skip_loop:
+		codepoint++;
+	}
+
+	finalFont.glyphs = (GlyphInfo *)malloc(sizeof(GlyphInfo) * finalFont.glyphCount);
+	memcpy(finalFont.glyphs, glyphs.data(), sizeof(GlyphInfo) * finalFont.glyphCount);
+
+	Image atlas = GenImageFontAtlas(finalFont.glyphs, &finalFont.recs, finalFont.glyphCount, finalFont.baseSize, finalFont.glyphPadding + (int)(floorf(outline)), 0);
+	finalFont.texture = LoadTextureFromImage(atlas);
+	SetTextureFilter(finalFont.texture, TEXTURE_FILTER_BILINEAR);
+
+	for (int i = 0; i < finalFont.glyphCount; i++)
+	{
+		GlyphInfo *glyph = &finalFont.glyphs[i];
+
+		if (IsImageValid(glyph->image))
+		{
+			UnloadImage(glyph->image);
+			glyph->image = {0};
+		}
+
+		Rectangle *rec = &finalFont.recs[i];
+		if (rec->width <= 0 || rec->height <= 0 || rec->x < 0 || rec->y < 0)
+			continue;
+
+		Image newImage = ImageFromImage(atlas, *rec);
+		if (!IsImageValid(newImage))
+			continue;
+
+		glyph->image = newImage;
+	}
+
+	UnloadImage(atlas);
+	FT_Done_Face(face);
+	if (outline > 0)
+		FT_Stroker_Done(stroker);
+
+	TraceLog(LOG_INFO, "FONT: Data loaded successfully (%i pixel size | %i glyphs)", finalFont.baseSize, finalFont.glyphCount);
+
+	return finalFont;
+}
+
+Font generateFontByFontName(std::string font, int fontSize, const int *codepoints, int codepointCount, float outlineSize)
+{
+	Font freetypeFont;
 	std::string path = GetResourcePath("resources/fonts/" + font);
+
 	if (!FileExists(path.c_str()))
 	{
 		FcPattern *pat = FcNameParse((FcChar8 *)font.c_str());
@@ -92,7 +304,7 @@ Font generateFontByFontName(std::string font, int fontSize, const int *codepoint
 				fon = FcPatternFilter(fs->fonts[0], os);
 				FcPatternGet(fon, FC_FILE, 0, &v);
 				path = std::string((char *)v.u.f);
-				TraceLog(LOG_WARNING, TextFormat("FONT: Found path for matched font %s: %s", font.c_str(), path.c_str()));
+				TraceLog(LOG_INFO, TextFormat("FONT: Found path for matched font %s: %s", font.c_str(), path.c_str()));
 
 				FcPatternDestroy(fon);
 			}
@@ -103,7 +315,10 @@ Font generateFontByFontName(std::string font, int fontSize, const int *codepoint
 			FcObjectSetDestroy(os);
 	}
 
-	return LoadFontEx(path.c_str(), fontSize, codepoints, codepointCount);
+	freetypeFont = LoadFreetypeFont(path, fontSize, (int *)codepoints, codepointCount, 0);
+	if (IsFontValid(freetypeFont))
+		outlineFonts[freetypeFont.texture.id] = LoadFreetypeFont(path, fontSize, (int *)codepoints, codepointCount, outlineSize);
+	return freetypeFont;
 
 return_fallback_font:
 	return LoadFontEx(DEFAULT_FONT, fontSize, codepoints, codepointCount);
@@ -272,11 +487,12 @@ void drawTruetypeFont(
 			position.x + shadow,
 			position.y + shadow,
 		};
-		DrawTextExOutlineKinda(font, font, ctext, shadowPos, fontSize, 0, outline, shadowTint);
-		DrawTextEx(font, ctext, position, fontSize, 0, shadowTint);
+		if (IsFontValid(font) && outlineFonts.count(font.texture.id))
+			DrawTextEx(outlineFonts[font.texture.id], ctext, shadowPos, fontSize, 0, shadowTint);
+		DrawTextEx(font, ctext, shadowPos, fontSize, 0, shadowTint);
 	}
-	if (outline > 0)
-		DrawTextExOutlineKinda(font, font, ctext, position, fontSize, 0, outline, outlineTint);
+	if (IsFontValid(font) && outlineFonts.count(font.texture.id))
+		DrawTextEx(outlineFonts[font.texture.id], ctext, position, fontSize, 0, outlineTint);
 
 	DrawTextEx(font, ctext, position, fontSize, 0, tint);
 }

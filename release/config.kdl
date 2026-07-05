@@ -67,6 +67,6 @@ appearance {
 
 // Configuration about settings that don't directly correlate to the indicator
 general {
-    monitor 1 // Which monitor should we use?
+    monitor 0 // Which monitor should we use?
     use-work-area #true // Should we use the available work area or use all the monitor area (doesn't apply in some DEs)
 }
