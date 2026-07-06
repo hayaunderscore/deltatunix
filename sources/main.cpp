@@ -430,6 +430,7 @@ int main(int argc, char **argv)
 		{
 			LoadConfig();
 			InitTextTexture();
+			currentText = mpris::buildDisplayedText();
 			GenerateTuneText();
 		},
 		true);

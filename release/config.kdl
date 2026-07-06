@@ -18,6 +18,44 @@ appearance {
         valign top // Vertical alignment (valid values: top, center, bottom)
 
         slide-distance 24 // Slide distance (does not apply for appearing animation in touhou style)
+
+        // Determines the formatting of the text.
+        // Syntax is somewhat similar to the syntax of foobar2000's title format syntax, with some differences
+        //
+        // Anything that starts with a < starts a function call, which expands to a string
+        // Function calls start with a function code (e.g. EXS), then an enclosed list of parameters separated by commas
+        // Parameters can be a literal, a variable, or a result of another function.
+        //
+        // Bracketed text refers to a variable (e.g. {title} expands to the current title of the song)
+        //
+        // Anything else is considered a string literal.
+        //
+        // Variables:
+        // Variables are a type that is later expanded to a string literal.
+        // Boolean-type variables literally say "true" or "false", meant to be used with <BOL.
+        //
+        // title
+        // 	- The title of the song.
+        // artist
+        // 	- The artist of the song.
+        // album
+        // 	- The album name of the song.
+        // albumArtist
+        // 	- The album artist of the song.
+        // paused
+        // 	- A boolean that checks if the song is paused or not.
+        //
+        // Functions:
+        // Functions take in parameters that return a string literal.
+        //
+        // <EXC(variableName,str,str) [example: <EXS(title,{title},Hmm]
+        // Returns the second parameter if variableName is not empty, the third if not
+        //
+        // <BOL(variableName,str,str) [example: <BOL(paused,PAUSED: ,PLAYING:)]
+        // Returns the second parameter if variableName is true, the third if false
+        //
+        // Full example:
+        // format "♪<EXS(artist,{artist} - ,){title}"
     }
 
     // Properties specific to a style!

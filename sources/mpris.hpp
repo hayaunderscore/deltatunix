@@ -26,6 +26,10 @@ extern std::string title;
  */
 extern std::string artist;
 /*
+ * The album artist of the current song.
+ */
+extern std::string albumArtist;
+/*
  * The album of the current song.
  * Songs with multiple artists are separated by ", ".
  */

@@ -1,5 +1,6 @@
 #include "mpris.hpp"
 #include "config.hpp"
+#include "formatscript.hpp"
 #include "raylib.h"
 #include <sdbus-c++/Message.h>
 #include <vector>
@@ -13,6 +14,7 @@ std::unique_ptr<sdbus::IConnection> connection;
 std::string title;
 std::string artist;
 std::string album;
+std::string albumArtist;
 
 bool playing;
 bool paused;
@@ -48,28 +50,16 @@ void start()
 std::string previousDisplayedText;
 std::string buildDisplayedText()
 {
-	bool touhou = g_config.appearance.style == config::STYLE_TOUHOU;
-
-	std::string text = touhou ? "" : "~   ";
-	if (paused && !touhou)
-		text = "⏸" + text;
-	else
-		text = "♪" + text;
-
-	if (!artist.empty())
-	{
-		text.append(artist);
-		if (!title.empty())
+	fsc::Context context = {
 		{
-			text.append(" - ");
-		}
-	}
-	if (!title.empty())
-	{
-		text.append(title);
-	}
+			{"artist", artist},
+			{"title", title},
+			{"album", album},
+			{"albumArtist", albumArtist},
+			{"paused", paused ? "true" : "false"},
+		}};
 
-	return text;
+	return fsc::render(g_config.appearance.text.format, context);
 }
 
 void updateMetadata(const variant_map &properties)
@@ -77,7 +67,7 @@ void updateMetadata(const variant_map &properties)
 	if (properties.count("Metadata") == 0)
 		return;
 
-	title = album = artist = "";
+	title = album = artist = albumArtist = "";
 
 	auto metadata = properties.at("Metadata").get<variant_map>();
 	for (const auto &[k, v] : metadata)
@@ -97,9 +87,20 @@ void updateMetadata(const variant_map &properties)
 				artist += a;
 			}
 		}
+		if (k == "xesam:albumArtist")
+		{
+			// i THINK this is a string array
+			// fuck it
+			for (const auto &a : v.get<std::vector<std::string>>())
+			{
+				if (!albumArtist.empty())
+					albumArtist += ", ";
+				albumArtist += a;
+			}
+		}
 	}
 
-	std::string builtText = buildDisplayedText();
+	std::string builtText = title + album + artist;
 	if (previousDisplayedText != builtText)
 	{
 		metadataCallback();

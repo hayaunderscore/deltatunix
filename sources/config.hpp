@@ -1,5 +1,6 @@
 #pragma once
 
+#include "formatscript.hpp"
 #include "raylib.h"
 #include <string>
 
@@ -50,6 +51,7 @@ struct ConfigAppearanceText
 	Vector2 offset;
 	AppearanceAlignment align = ALIGN_RIGHT;
 	AppearanceVerticalAlignment valign = ALIGN_TOP;
+	fsc::Template format;
 	float slideDistance = 24;
 };
 

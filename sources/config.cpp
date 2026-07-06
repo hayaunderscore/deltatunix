@@ -22,6 +22,9 @@
 namespace config
 {
 
+inline constexpr const char *DEFAULT_FORMAT_DELTARUNE = "<BOL(paused,⏸,♪)~   <EXS(artist,{artist} - ,){title}";
+inline constexpr const char *DEFAULT_FORMAT_TOUHOU = "♪<EXS(artist,{artist} - ,){title}";
+
 Color ColorFromHexCode(std::u8string hex, Color defaultColor = BLACK)
 {
 	if (hex.empty())
@@ -54,6 +57,8 @@ void IterateAppearanceNode(const kdl::Node &node, ConfigAppearance &appearance)
 		{
 			std::u8string val = child.args()[0].as<std::u8string>();
 			appearance.style = GetStyleFromString(val);
+			if (appearance.text.format.empty())
+				appearance.text.format = fsc::Parser(appearance.style == STYLE_DELTARUNE ? DEFAULT_FORMAT_DELTARUNE : DEFAULT_FORMAT_TOUHOU).parse();
 			continue;
 		}
 
@@ -133,7 +138,14 @@ void IterateAppearanceNode(const kdl::Node &node, ConfigAppearance &appearance)
 					continue;
 				}
 				KDL_UTIL_CHANGEVAR(textChild, appearance.text, slideDistance, u8"slide-distance", float)
+
+				if (textChild.name() == u8"format")
+				{
+					std::u8string val = textChild.args()[0].as<std::u8string>();
+					appearance.text.format = fsc::Parser(std::string(val.begin(), val.end())).parse();
+				}
 			}
+
 			continue;
 		}
 
@@ -159,6 +171,9 @@ void IterateAppearanceNode(const kdl::Node &node, ConfigAppearance &appearance)
 			continue;
 		}
 	}
+
+	if (appearance.text.format.empty())
+		appearance.text.format = fsc::Parser(appearance.style == STYLE_DELTARUNE ? DEFAULT_FORMAT_DELTARUNE : DEFAULT_FORMAT_TOUHOU).parse();
 }
 
 void IterateGeneralNode(const kdl::Node &node, ConfigGeneral &general)
