@@ -151,7 +151,7 @@ void GenerateTuneText()
 		// Only load the glyphs necessary...
 		if (IsFontValid(kochiFont))
 		{
-			UnloadFont(kochiFont);
+			font::unloadFont(kochiFont);
 		}
 
 		size = g_config.appearance.text.textSize;

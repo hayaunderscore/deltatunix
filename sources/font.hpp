@@ -23,6 +23,7 @@ extern FT_Library ftLibrary;								// Freetype library object
 void init(config::Config *conf);
 Image FT_BitmapToImage(const FT_Bitmap *bmp);
 Font generateFontByFontName(std::string font, int fontSize, const int *codepoints = NULL, int codepointCount = 0, float outlineSize = 0);
+void unloadFont(Font font);
 void drawDeltatuneFont(const std::string &text, Vector2 position, Color tint = WHITE);
 void drawTruetypeFont(
 	const Font &font,

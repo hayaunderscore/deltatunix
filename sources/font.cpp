@@ -317,11 +317,24 @@ Font generateFontByFontName(std::string font, int fontSize, const int *codepoint
 
 	freetypeFont = LoadFreetypeFont(path, fontSize, (int *)codepoints, codepointCount, 0);
 	if (IsFontValid(freetypeFont))
-		outlineFonts[freetypeFont.texture.id] = LoadFreetypeFont(path, fontSize, (int *)codepoints, codepointCount, outlineSize);
+	{
+		unsigned int id = freetypeFont.texture.id;
+		outlineFonts[id] = LoadFreetypeFont(path, fontSize, (int *)codepoints, codepointCount, outlineSize);
+	}
 	return freetypeFont;
 
 return_fallback_font:
 	return LoadFontEx(DEFAULT_FONT, fontSize, codepoints, codepointCount);
+}
+
+void unloadFont(Font font)
+{
+	if (outlineFonts.count(font.texture.id))
+	{
+		UnloadFont(outlineFonts[font.texture.id]);
+		outlineFonts.erase(font.texture.id);
+	}
+	UnloadFont(font);
 }
 
 // Edit of MeasureTextEx for fallback fonts
