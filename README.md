@@ -25,6 +25,7 @@ You will need:
 - sdbus-c++
 - Fontconfig
 - Freetype
+- RapidFuzz (rapidfuzz-cpp)
 - Qt 6 (when building with tray)
 - A compiler that supports atleast C++20 (which is most nowadays...)
 
