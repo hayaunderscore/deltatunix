@@ -66,6 +66,9 @@ std::string buildDisplayedText()
 			{"paused", paused ? "true" : "false"},
 		}};
 
+	for (const auto &[var, val] : g_config.appearance.text.formatArguments)
+		context.vars.insert_or_assign(var, val);
+
 	return fsc::render(g_config.appearance.text.format, context);
 }
 

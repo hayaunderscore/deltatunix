@@ -339,9 +339,11 @@ void UpdateTuneState()
 			{
 			case config::ALIGN_TOP:
 				dist = -g_config.appearance.text.slideDistance;
+				opacity = 1.0;
 				break;
 			case config::ALIGN_BOTTOM:
 				dist = g_config.appearance.text.slideDistance;
+				opacity = 1.0;
 				break;
 			default:
 				break;

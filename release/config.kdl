@@ -29,6 +29,7 @@ appearance {
         // Bracketed text refers to a variable (e.g. {title} expands to the current title of the song)
         //
         // Anything else is considered a string literal.
+        // Booleans are treated like any normal string except on specific functions.
         //
         // Variables:
         // Variables are a type that is later expanded to a string literal.
@@ -51,11 +52,21 @@ appearance {
         // <EXC(variableName,str,str) [example: <EXS(title,{title},Hmm]
         // Returns the second parameter if variableName is not empty, the third if not
         //
-        // <BOL(variableName,str,str) [example: <BOL(paused,PAUSED: ,PLAYING:)]
+        // <BOL(variableName|boolean,str,str) [example: <BOL(paused,PAUSED:,PLAYING:)]
         // Returns the second parameter if variableName is true, the third if false
+        // Can also be a direct boolean name (e.g. true or false)
+        //
+        // <CMP(str,str) [example: <CMP({title},Field of Hopes and Dreams)]
+        // Returns a boolean that checks if the two strings match.
+        //
+        // <CNT(str1,str2) [example: <CMP({artist},Toby Fox)]
+        // Returns a boolean that checks if str1 contains str2.
         //
         // Full example:
-        // format "♪<EXS(artist,{artist} - ,){title}"
+        /-format "♪<EXS(artist,{artist} - ,){title}" {
+        	// These can also have custom variables, to help clean up function calls that use the same string, for example
+         	// trickytony "Toby Fox"
+        }
     }
 
     // Properties specific to a style!

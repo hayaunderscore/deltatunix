@@ -143,6 +143,21 @@ void IterateAppearanceNode(const kdl::Node &node, ConfigAppearance &appearance)
 				{
 					std::u8string val = textChild.args()[0].as<std::u8string>();
 					appearance.text.format = fsc::Parser(std::string(val.begin(), val.end())).parse();
+					if (!textChild.children().empty())
+					{
+						for (const auto &fmt : textChild.children())
+						{
+							std::u8string name = fmt.name();
+							auto val = fmt.args()[0];
+							if (val.type() == kdl::Type::String)
+							{
+								std::u8string trueVal = val.as<std::u8string>();
+								appearance.text.formatArguments.insert_or_assign(
+									std::string(name.begin(), name.end()),
+									std::string(trueVal.begin(), trueVal.end()));
+							}
+						}
+					}
 				}
 			}
 

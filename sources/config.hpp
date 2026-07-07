@@ -52,6 +52,7 @@ struct ConfigAppearanceText
 	AppearanceAlignment align = ALIGN_RIGHT;
 	AppearanceVerticalAlignment valign = ALIGN_TOP;
 	fsc::Template format;
+	std::unordered_map<std::string, std::string> formatArguments;
 	float slideDistance = 24;
 };
 

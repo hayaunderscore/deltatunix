@@ -128,9 +128,29 @@ const std::unordered_map<std::string, FSCFunction> &functionTable()
 			 if (node.arguments.size() != 3)
 				 throw std::runtime_error("BOL expected three args, got " + std::to_string(node.arguments.size()));
 			 std::string name = render(node.arguments[0], ctx);
-			 const std::string &boolean = ctx.get(name);
+			 const std::string &boolean = ctx.get(name).empty() ? name : ctx.get(name);
 			 TraceLog(LOG_INFO, TextFormat("FSC: BOL (%s, %s, %s)", boolean.c_str(), render(node.arguments[1], ctx).c_str(), render(node.arguments[2], ctx).c_str()));
 			 return render(to_bool(boolean) ? node.arguments[1] : node.arguments[2], ctx);
+		 }},
+		{"CMP", [](const Node &node, const Context &ctx) -> std::string
+		 {
+			 if (node.arguments.size() != 2)
+				 throw std::runtime_error("CMP expected two args, got " + std::to_string(node.arguments.size()));
+			 const std::string name = render(node.arguments[0], ctx);
+			 const std::string name2 = render(node.arguments[1], ctx);
+			 const std::string result = name == name2 ? "true" : "false";
+			 TraceLog(LOG_INFO, TextFormat("FSC: CMP (%s, %s) -> %s", name.c_str(), name2.c_str(), result.c_str()));
+			 return result;
+		 }},
+		{"CNT", [](const Node &node, const Context &ctx) -> std::string
+		 {
+			 if (node.arguments.size() != 2)
+				 throw std::runtime_error("CNT expected two args, got " + std::to_string(node.arguments.size()));
+			 const std::string name = render(node.arguments[0], ctx);
+			 const std::string name2 = render(node.arguments[1], ctx);
+			 const std::string result = name.find(name2) != std::string::npos ? "true" : "false";
+			 TraceLog(LOG_INFO, TextFormat("FSC: CNT (%s, %s) -> %s", name.c_str(), name2.c_str(), result.c_str()));
+			 return result;
 		 }},
 	};
 	return table;
