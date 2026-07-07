@@ -210,6 +210,18 @@ void IterateGeneralNode(const kdl::Node &node, ConfigGeneral &general)
 			continue;
 		}
 		KDL_UTIL_CHANGEVAR(child, general, useWorkArea, u8"use-work-area", bool)
+		if (child.name() == u8"blacklist")
+		{
+			for (const auto &arg : child.args())
+			{
+				if (arg.type() == kdl::Type::String)
+				{
+					std::u8string val = arg.as<std::u8string>();
+					utf8lwr(val.data());
+					general.blacklist.push_back(std::string(val.begin(), val.end()));
+				}
+			}
+		}
 	}
 }
 

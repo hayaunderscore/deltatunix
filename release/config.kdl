@@ -107,4 +107,10 @@ appearance {
 general {
     monitor 0 // Which monitor should we use?
     use-work-area #true // Should we use the available work area or use all the monitor area (doesn't apply in some DEs)
+    /*
+    	* A series of (case-insensitive) strings the indicator will try avoiding to check
+        * Uses fuzzy matching to find players (token sort)
+        * Something like "floorp" for "Ablaze Floorp" matches for example, so long as the ratio is atleast 60%
+    */
+    // blacklist "floorp" "mpv" "smplayer"
 }

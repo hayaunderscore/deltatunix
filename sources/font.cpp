@@ -48,7 +48,7 @@ Image FT_BitmapToImage(const FT_Bitmap *bmp)
 
 	if (width == 0 || height == 0)
 	{
-		TraceLog(LOG_WARNING, TextFormat("FONT: Font bitmap width or height is 0!"));
+		// TraceLog(LOG_WARNING, TextFormat("FONT: Font bitmap width or height is 0!"));
 		return GenImageColor(1, 1, BLANK);
 	}
 

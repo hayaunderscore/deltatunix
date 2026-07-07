@@ -1,8 +1,12 @@
 #include "mpris.hpp"
 #include "config.hpp"
+#include "external/utf8.h"
 #include "formatscript.hpp"
 #include "raylib.h"
+#include <optional>
+#include <rapidfuzz/fuzz.hpp>
 #include <sdbus-c++/Message.h>
+#include <utility>
 #include <vector>
 
 extern config::Config g_config;
@@ -41,6 +45,9 @@ void start()
 
 							 // Map these to the interface and properties
 							 msg >> interface >> properties;
+
+							 if (!proceedIdentity(getPlayerIdentity(msg.getSender())))
+								 return;
 
 							 updateMetadata(properties);
 							 updatePlaybackState(properties);
@@ -133,6 +140,68 @@ void updatePlaybackState(const variant_map &properties)
 		pausedCallback(paused);
 	}
 	lastStatus = status;
+}
+
+std::string getPlayerIdentity(const std::string &sender)
+{
+	try
+	{
+		auto proxy = sdbus::createProxy(*connection, sdbus::ServiceName{sender}, sdbus::ObjectPath{"/org/mpris/MediaPlayer2"});
+		std::string val = proxy->getProperty("Identity").onInterface("org.mpris.MediaPlayer2").get<std::string>();
+		utf8lwr((char8_t *)(val.data()));
+		return val;
+	}
+	catch (const sdbus::Error &e)
+	{
+		// TraceLog(LOG_INFO, TextFormat("MPRIS: Failed to get player identity: %s", e.getMessage().c_str()));
+		return {};
+	}
+}
+
+std::optional<std::pair<std::string, double>> fuzzyFindIdentity(
+	const std::string &query,
+	const std::vector<std::string> &values,
+	const double cutoff)
+{
+	bool matchFound = false;
+	double best = cutoff;
+	std::string bestMatch;
+
+	rapidfuzz::fuzz::CachedTokenSortRatio<std::string::value_type> scorer(query);
+
+	for (const auto &value : values)
+	{
+		double score = scorer.similarity(value, best);
+		if (score >= best)
+		{
+			bestMatch = value;
+			best = score;
+			matchFound = true;
+		}
+	}
+
+	if (!matchFound)
+		return std::nullopt;
+
+	return std::make_pair(bestMatch, best);
+}
+
+bool proceedIdentity(const std::string &identity)
+{
+	// No need to check if blacklist is empty anyways...
+	if (g_config.general.blacklist.size() == 0)
+		return true;
+
+	std::optional<std::pair<std::string, double>> fuzzed = fuzzyFindIdentity(identity, g_config.general.blacklist, 60);
+	if (not fuzzed.has_value())
+		return true;
+
+	// TraceLog(LOG_INFO, TextFormat("MPRIS: Fuzzer result: %s (%.f)", fuzzed.value().first.c_str(), fuzzed.value().second));
+
+	if (fuzzed.value().second >= 60)
+		return false;
+
+	return true;
 }
 
 void updateConnection() { connection->processPendingEvent(); }

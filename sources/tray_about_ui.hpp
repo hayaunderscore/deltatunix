@@ -25,6 +25,7 @@
 #include <QString>
 #include <fontconfig/fontconfig.h>
 #include <ft2build.h>
+#include <rapidfuzz/rapidfuzz_all.hpp>
 #include FT_FREETYPE_H
 #include <string>
 
@@ -186,6 +187,7 @@ class Ui_AboutDeltatunix
 		setupComponentWidget(componentsTab, "ckdl", CKDL_VERSION, "KDL parsing library in C, Python, C++", "https://github.com/tjol/ckdl/");
 		setupComponentWidget(componentsTab, "Fontconfig", QString::fromStdString(FONTCONFIG_VERSION), "A library for configuring and customizing font access", "https://www.freedesktop.org/wiki/Software/fontconfig/");
 		setupComponentWidget(componentsTab, "FreeType", QString::fromStdString(FREETYPE_VERSION), "A freely available software library to render fonts", "https://freetype.org/");
+		setupComponentWidget(componentsTab, "RapidFuzz", RAPIDFUZZ_VERSION, "Rapid fuzzy string matching in C++ using the Levenshtein Distance", "https://github.com/rapidfuzz/rapidfuzz-cpp");
 		setupComponentWidget(componentsTab, "Qt", qVersion(), "Cross-platform application development framework.", "https://qt.io/");
 
 		for (const auto &widget : componentWidgets)

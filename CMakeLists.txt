@@ -55,6 +55,9 @@ find_package(Fontconfig REQUIRED)
 # Freetype
 find_package(Freetype REQUIRED)
 
+# RapidFuzz
+find_package(rapidfuzz REQUIRED)
+
 # Adding our source files
 file(GLOB_RECURSE PROJECT_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/sources/*.cpp") # Define PROJECT_SOURCES as a list of all source files
 set(PROJECT_INCLUDE "${CMAKE_CURRENT_LIST_DIR}/sources/") # Define PROJECT_INCLUDE to be the path to the include directory of the project
@@ -66,7 +69,7 @@ endif()
 add_executable(${PROJECT_NAME})
 target_sources(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${PROJECT_INCLUDE})
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib SDBusCpp::sdbus-c++ kdl kdlpp version::version Fontconfig::Fontconfig Freetype::Freetype)
+target_link_libraries(${PROJECT_NAME} PRIVATE raylib SDBusCpp::sdbus-c++ kdl kdlpp version::version Fontconfig::Fontconfig Freetype::Freetype rapidfuzz::rapidfuzz)
 if(BUILD_SYSTRAY)
 	target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Widgets)
 	target_compile_definitions(${PROJECT_NAME} PUBLIC BUILD_SYSTRAY)
@@ -83,6 +86,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 target_compile_definitions(${PROJECT_NAME} PUBLIC ASSETS_PATH="resources/")
 target_compile_definitions(${PROJECT_NAME} PUBLIC SDBUSCPP_VERSION="${sdbus-c++_VERSION}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC CKDL_VERSION="1.0-${CKDL_COMMIT_SHA}")
+target_compile_definitions(${PROJECT_NAME} PUBLIC RAPIDFUZZ_VERSION="${rapidfuzz_VERSION}")
 
 # Run specific stuff when using cmake --install
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)

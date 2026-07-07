@@ -58,6 +58,12 @@ void updateMetadata(const variant_map &properties);
  * Updates playback state.
  */
 void updatePlaybackState(const variant_map &properties);
+std::string getPlayerIdentity(const std::string &sender);
+std::optional<std::pair<std::string, double>> fuzzyFindIdentity(
+	const std::string &query,
+	const std::vector<std::string> &values,
+	const double cutoff);
+bool proceedIdentity(const std::string &identity);
 /*
  * Closes the connection and frees up leftover resources.
  * Not used at the moment.

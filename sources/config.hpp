@@ -81,6 +81,7 @@ struct ConfigGeneral
 {
 	int monitor;
 	bool useWorkArea = true;
+	std::vector<std::string> blacklist;
 };
 
 struct Config
