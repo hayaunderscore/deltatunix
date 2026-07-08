@@ -5,6 +5,7 @@
 #include <freetype/ftglyph.h>
 #include FT_FREETYPE_H
 #include FT_STROKER_H
+#include <cctype>
 #include <raylib.h>
 #include <stdlib.h>
 #include <vector>
@@ -53,6 +54,7 @@ Image FT_BitmapToImage(const FT_Bitmap *bmp)
 	}
 
 	unsigned char *pixels = (unsigned char *)malloc(width * height);
+	memset(pixels, 0, width * height);
 
 	for (int y = 0; y < height; y++)
 	{
@@ -155,6 +157,7 @@ Font LoadFreetypeFont(std::string font, int fontSize, int *codepoints, int codep
 			bitmap = face->glyph->bitmap;
 			glyphInfo.offsetX = face->glyph->bitmap_left;
 			glyphInfo.offsetY = ascender - face->glyph->bitmap_top;
+			glyphInfo.image = FT_BitmapToImage(&bitmap);
 		}
 		else
 		{
@@ -165,11 +168,14 @@ Font LoadFreetypeFont(std::string font, int fontSize, int *codepoints, int codep
 				goto skip_loop;
 			}
 
-			error = FT_Glyph_StrokeBorder(&strokeGlyph, stroker, 0, 1);
-			if (error)
+			if (!std::isspace(*codepoint))
 			{
-				TraceLog(LOG_WARNING, TextFormat("FONT: Failed to stroke glyph! [%s] (Error code %d)", font.c_str(), error));
-				goto skip_loop;
+				error = FT_Glyph_StrokeBorder(&strokeGlyph, stroker, 0, 1);
+				if (error)
+				{
+					TraceLog(LOG_WARNING, TextFormat("FONT: Failed to stroke glyph! [%s] (Error code %d)", font.c_str(), error));
+					goto skip_loop;
+				}
 			}
 
 			error = FT_Glyph_To_Bitmap(&strokeGlyph, FT_RENDER_MODE_NORMAL, NULL, 1);
@@ -183,6 +189,7 @@ Font LoadFreetypeFont(std::string font, int fontSize, int *codepoints, int codep
 			bitmap = bitmapGlyph->bitmap;
 			glyphInfo.offsetX = bitmapGlyph->left;
 			glyphInfo.offsetY = ascender - bitmapGlyph->top;
+			glyphInfo.image = FT_BitmapToImage(&bitmap);
 
 			if (strokeGlyph)
 				FT_Done_Glyph(strokeGlyph);
@@ -190,7 +197,6 @@ Font LoadFreetypeFont(std::string font, int fontSize, int *codepoints, int codep
 
 		glyphInfo.advanceX = face->glyph->advance.x >> 6;
 		glyphInfo.value = *codepoint;
-		glyphInfo.image = FT_BitmapToImage(&bitmap);
 
 		glyphs.push_back(glyphInfo);
 		finalFont.glyphCount++;
@@ -202,7 +208,7 @@ Font LoadFreetypeFont(std::string font, int fontSize, int *codepoints, int codep
 	finalFont.glyphs = (GlyphInfo *)malloc(sizeof(GlyphInfo) * finalFont.glyphCount);
 	memcpy(finalFont.glyphs, glyphs.data(), sizeof(GlyphInfo) * finalFont.glyphCount);
 
-	Image atlas = GenImageFontAtlas(finalFont.glyphs, &finalFont.recs, finalFont.glyphCount, finalFont.baseSize, finalFont.glyphPadding + (int)(floorf(outline)), 0);
+	Image atlas = GenImageFontAtlas(finalFont.glyphs, &finalFont.recs, finalFont.glyphCount, finalFont.baseSize, finalFont.glyphPadding + (int)(ceilf(outline)), 0);
 	finalFont.texture = LoadTextureFromImage(atlas);
 	SetTextureFilter(finalFont.texture, TEXTURE_FILTER_BILINEAR);
 
