@@ -191,6 +191,15 @@ std::optional<std::pair<std::string, double>> fuzzyFindIdentity(
 
 bool proceedIdentity(const std::string &identity)
 {
+	// Use whitelist if we have it
+	if (g_config.general.whitelist.size() > 0)
+	{
+		std::optional<std::pair<std::string, double>> fuzzed = fuzzyFindIdentity(identity, g_config.general.whitelist, 60);
+		if (not fuzzed.has_value())
+			return false;
+		return (fuzzed.value().second >= 60);
+	}
+
 	// No need to check if blacklist is empty anyways...
 	if (g_config.general.blacklist.size() == 0)
 		return true;

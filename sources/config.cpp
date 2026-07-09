@@ -237,6 +237,18 @@ void IterateGeneralNode(const kdl::Node &node, ConfigGeneral &general)
 				}
 			}
 		}
+		if (child.name() == u8"whitelist")
+		{
+			for (const auto &arg : child.args())
+			{
+				if (arg.type() == kdl::Type::String)
+				{
+					std::u8string val = arg.as<std::u8string>();
+					utf8lwr(val.data());
+					general.whitelist.push_back(std::string(val.begin(), val.end()));
+				}
+			}
+		}
 	}
 }
 

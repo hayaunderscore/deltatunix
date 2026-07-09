@@ -427,6 +427,14 @@ int main(int argc, char **argv)
 
 	tray::init(argc, argv);
 	tray::addAction(
+		"Force Hide",
+		[&]()
+		{
+			currentState = STATE_DISAPPEARING;
+			animationTimer = 0;
+		},
+		true);
+	tray::addAction(
 		"Reload Config",
 		[&]()
 		{
