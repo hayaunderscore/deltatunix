@@ -43,9 +43,24 @@ Just run the compiled `deltatunix` executable! That's it.
 
 If you compiled with the system tray module, there should be a system tray icon at your taskbar, allowing you to reload your config without restarting the program.
 
-# Known Issues
+# Per window manager/compositor configuration
 
-- Stray pixels when the text has an outline.
+For hyprland users, add this to your `hyprland.lua`:
+
+```lua
+hl.window_rule({
+    name  = "deltatunix",
+    match = { title = "deltatunix", xwayland=true },
+    float = true,
+    no_focus = true,
+    no_blur = true,
+    no_follow_mouse = true,
+    no_shadow = true,
+    no_initial_focus = true,
+    border_size = 0,
+    pin = true,
+})
+```
 
 # License
 

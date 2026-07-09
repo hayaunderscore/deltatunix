@@ -438,7 +438,7 @@ int main(int argc, char **argv)
 		true);
 
 	SetConfigFlags(FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_MOUSE_PASSTHROUGH | FLAG_WINDOW_TRANSPARENT | FLAG_WINDOW_TOPMOST);
-	InitWindow(1, 1, "");
+	InitWindow(1, 1, "deltatunix");
 	SetTargetFPS(60);
 
 	LoadConfig();
